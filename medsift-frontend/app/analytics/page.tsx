@@ -41,7 +41,7 @@ export default function AnalyticsPage() {
         setAnalytics(a);
         setFeedbackAnalytics(fa);
       } catch {
-        toast.error("Failed to load analytics");
+        // backend not running — show empty state silently
       } finally {
         setLoading(false);
       }

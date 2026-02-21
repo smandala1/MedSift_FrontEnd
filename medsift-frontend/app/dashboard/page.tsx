@@ -11,7 +11,7 @@ import { getVisits, getAnalytics } from "@/lib/api";
 import {
   Activity, FileText, BarChart3,
   Calendar, ArrowRight, TrendingUp, AlertTriangle, CheckCircle2,
-  Upload, Clock, Pill, Bell
+  Upload, Clock, Pill, Bell, MessageSquare, PhoneOff,
 } from "lucide-react";
 import type { VisitRecord, AnalyticsSummary, AuthUser } from "@/types";
 import { toast } from "sonner";
@@ -79,7 +79,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-6xl">
+    <div className="p-6 lg:p-8 w-full max-w-screen-xl">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight">
@@ -110,37 +110,35 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Total Visits</p>
-                <p className="text-2xl font-bold mt-1">{loading ? "—" : analytics?.total_visits ?? visits.length}</p>
+      {/* Stats row — different layout for clinician vs patient */}
+      {isClinician ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">Total Visits</p>
+                  <p className="text-2xl font-bold mt-1">{loading ? "—" : analytics?.total_visits ?? visits.length}</p>
+                </div>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
               </div>
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-primary" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">Avg Risk Score</p>
+                  <p className="text-2xl font-bold mt-1">{loading ? "—" : analytics?.avg_risk_score?.toFixed(0) ?? "—"}</p>
+                </div>
+                <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                  <Activity className="h-5 w-5 text-amber-600" />
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Avg Risk Score</p>
-                <p className="text-2xl font-bold mt-1">{loading ? "—" : analytics?.avg_risk_score?.toFixed(0) ?? "—"}</p>
-              </div>
-              <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center">
-                <Activity className="h-5 w-5 text-amber-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {isClinician && (
+            </CardContent>
+          </Card>
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -154,9 +152,6 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
-        )}
-
-        {isClinician && (
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -170,8 +165,59 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
-        )}
-      </div>
+        </div>
+      ) : (
+        /* Patient stat cards */
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">My Visits</p>
+                  <p className="text-2xl font-bold mt-1">{loading ? "—" : visibleVisits.length}</p>
+                </div>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">Medications</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {loading ? "—" : visibleVisits.reduce((sum, v) => sum + (v.patient_summary?.medications?.length ?? 0), 0)}
+                  </p>
+                </div>
+                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <Pill className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="col-span-2 lg:col-span-1">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">SMS Reminders</p>
+                  <p className="text-sm font-bold mt-1">
+                    {user?.sms_consent
+                      ? <span className="text-green-600">Active</span>
+                      : <span className="text-slate-400">Not set up</span>}
+                  </p>
+                </div>
+                <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${user?.sms_consent ? "bg-green-50" : "bg-slate-100"}`}>
+                  {user?.sms_consent
+                    ? <MessageSquare className="h-5 w-5 text-green-600" />
+                    : <PhoneOff className="h-5 w-5 text-slate-400" />}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Quick action — single upload button for clinician */}
       {isClinician && (
@@ -194,9 +240,9 @@ export default function DashboardPage() {
       )}
 
       {/* Main content grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {/* Recent visits */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 xl:col-span-3">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-sm">{isClinician ? "Recent Visits" : "My Recent Visits"}</h2>
             <Link href="/visits" className="text-xs text-primary hover:underline flex items-center gap-1">
@@ -371,7 +417,7 @@ export default function DashboardPage() {
             </Card>
           )}
 
-          {/* Quick links */}
+          {/* Quick links (clinician only) */}
           {isClinician && (
             <Card>
               <CardHeader className="pb-2">
@@ -380,6 +426,54 @@ export default function DashboardPage() {
               <CardContent className="space-y-1">
                 <Link href="/analytics" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground py-1.5 transition-colors">
                   <BarChart3 className="h-3.5 w-3.5" /> View Analytics
+                </Link>
+                <Link href="/visits" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground py-1.5 transition-colors">
+                  <FileText className="h-3.5 w-3.5" /> All Visits
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Patient: SMS reminders card */}
+          {!isClinician && (
+            <Card className={user?.sms_consent ? "border-green-200 bg-green-50/40" : "border-slate-200 bg-slate-50/60"}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${user?.sms_consent ? "bg-green-100" : "bg-slate-200"}`}>
+                    <MessageSquare className={`h-4 w-4 ${user?.sms_consent ? "text-green-600" : "text-slate-400"}`} />
+                  </div>
+                  <div>
+                    <p className={`text-sm font-semibold ${user?.sms_consent ? "text-green-800" : "text-slate-600"}`}>
+                      {user?.sms_consent ? "SMS Reminders Active" : "SMS Reminders Off"}
+                    </p>
+                    {user?.sms_consent ? (
+                      <>
+                        <p className="text-[11px] text-green-700 mt-0.5 leading-relaxed">
+                          You&apos;ll receive medication reminders at{" "}
+                          <span className="font-semibold">{user.phone ?? "your registered number"}</span>.
+                        </p>
+                        <p className="text-[10px] text-green-600/70 mt-1">Reply STOP to any message to opt out.</p>
+                      </>
+                    ) : (
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                        Enable SMS reminders during sign-up to get medication alerts sent to your phone.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Patient: quick links */}
+          {!isClinician && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground">Quick Links</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                <Link href="/medications" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground py-1.5 transition-colors">
+                  <Pill className="h-3.5 w-3.5" /> My Medications
                 </Link>
                 <Link href="/visits" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground py-1.5 transition-colors">
                   <FileText className="h-3.5 w-3.5" /> All Visits

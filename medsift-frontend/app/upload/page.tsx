@@ -57,8 +57,15 @@ export default function UploadPage() {
 
   useEffect(() => {
     const stored = localStorage.getItem("medsift_user");
-    if (stored) setUser(JSON.parse(stored));
-  }, []);
+    if (!stored) { router.push("/login"); return; }
+    const u = JSON.parse(stored) as AuthUser;
+    setUser(u);
+    // Patients cannot upload recordings — redirect to dashboard
+    if (u.role === "patient") {
+      toast.error("Patients cannot upload recordings. Only clinicians can process audio.");
+      router.push("/dashboard");
+    }
+  }, [router]);
 
   // ── Recording timer ───────────────────────────────────────────
   useEffect(() => {

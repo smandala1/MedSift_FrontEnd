@@ -252,4 +252,6 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  phone?: string;
+  sms_consent?: boolean;
 }

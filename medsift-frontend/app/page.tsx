@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -138,16 +137,28 @@ export default function HomePage() {
             </Badge>
           </div>
 
-          {/* Brand logo */}
-          <div className="mb-4" style={{ animation: "fadeSlideUp 0.7s ease both" }}>
-            <Image
-              src="/logo.png"
-              alt="MedSift AI"
-              width={320}
-              height={213}
-              className="object-contain"
-              priority
-            />
+          {/* SVG wordmark — transparent, no white box */}
+          <div className="flex items-center justify-center gap-3 mb-8" style={{ animation: "fadeSlideUp 0.7s ease both" }}>
+            <svg viewBox="0 0 60 60" width="68" height="68" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="hc" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#29b6f6"/><stop offset="100%" stopColor="#1565c0"/></linearGradient>
+                <linearGradient id="hf" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#26c6da"/><stop offset="100%" stopColor="#00c853"/></linearGradient>
+              </defs>
+              <rect x="5"  y="12" width="14" height="38" rx="4" fill="url(#hc)" opacity="0.95"/>
+              <rect x="0"  y="24" width="24" height="14" rx="4" fill="url(#hc)" opacity="0.95"/>
+              <polygon points="14,14 38,14 31,32 21,32" fill="url(#hf)" opacity="0.95"/>
+              <rect x="21" y="32" width="10" height="12" rx="3" fill="url(#hf)" opacity="0.95"/>
+              <rect x="25" y="4"  width="7"  height="7"  rx="2" fill="#00c853" opacity="0.9"/>
+              <rect x="34" y="2"  width="5"  height="5"  rx="1.5" fill="#29b6f6" opacity="0.8"/>
+              <rect x="41" y="8"  width="4"  height="4"  rx="1" fill="#26c6da" opacity="0.7"/>
+              <polyline points="0,52 8,52 12,45 16,57 20,40 24,52 44,52 58,52" stroke="#29b6f6" strokeWidth="2" strokeLinecap="round" fill="none"/>
+            </svg>
+            <span className="font-black italic leading-none" style={{ fontSize: "clamp(2.8rem,6vw,4.2rem)", letterSpacing: "-0.02em" }}>
+              <span style={{ background: "linear-gradient(90deg,#29b6f6,#1565c0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Med</span>
+              <span style={{ background: "linear-gradient(90deg,#43a047,#00c853)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Sift</span>
+            </span>
+            <span className="font-black text-white rounded-xl px-3 py-1.5 leading-none"
+              style={{ fontSize: "clamp(1.6rem,3.5vw,2.4rem)", background: "#1a237e" }}>AI</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-4 max-w-3xl"

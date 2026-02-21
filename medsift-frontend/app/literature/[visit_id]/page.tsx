@@ -32,7 +32,8 @@ export default function LiteraturePage() {
       setPapers(lit);
       setTrials(tri);
     } catch {
-      toast.error("Failed to load research data");
+      setPapers([]);
+      setTrials([]);
     } finally {
       setLoading(false);
       setRefreshing(false);

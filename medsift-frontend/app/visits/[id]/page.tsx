@@ -73,7 +73,6 @@ export default function VisitDetailPage() {
         setLiterature(lit);
         setTrials(tri);
       } catch {
-        toast.error("Failed to load visit");
         router.push("/visits");
       } finally {
         setLoading(false);

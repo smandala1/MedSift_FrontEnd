@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getVisits, deleteVisit } from "@/lib/api";
 import { Search, Calendar, Clock, Trash2, ArrowRight, Plus } from "lucide-react";
 import { toast } from "sonner";
-import type { VisitRecord } from "@/types";
+import type { VisitRecord, AuthUser } from "@/types";
 
 const RISK_STYLES: Record<string, string> = {
   low:    "bg-green-100 text-green-700 border-green-200",
@@ -23,6 +23,15 @@ export default function VisitsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState("");
+  const [isClinician, setIsClinician] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("medsift_user");
+    if (stored) {
+      const u = JSON.parse(stored) as AuthUser;
+      setIsClinician(u.role === "clinician");
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -30,7 +39,7 @@ export default function VisitsPage() {
       const data = await getVisits({ search: search || undefined, tag: activeTag || undefined });
       setVisits(data);
     } catch {
-      toast.error("Failed to load visits");
+      setVisits([]);
     } finally {
       setLoading(false);
     }
@@ -61,9 +70,11 @@ export default function VisitsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Visit History</h1>
           <p className="text-muted-foreground text-sm mt-0.5">{visits.length} visit{visits.length !== 1 ? "s" : ""} recorded</p>
         </div>
-        <Link href="/upload">
-          <Button className="gap-2"><Plus className="h-4 w-4" /> New Recording</Button>
-        </Link>
+        {isClinician && (
+          <Link href="/upload">
+            <Button className="gap-2"><Plus className="h-4 w-4" /> New Recording</Button>
+          </Link>
+        )}
       </div>
 
       {/* Search + tag filters */}
@@ -104,8 +115,14 @@ export default function VisitsPage() {
       ) : visits.length === 0 ? (
         <div className="text-center py-24 text-muted-foreground">
           <p className="text-lg font-medium mb-2">No visits yet</p>
-          <p className="text-sm mb-6">Upload a recording to get started.</p>
-          <Link href="/upload"><Button>Upload First Recording</Button></Link>
+          {isClinician ? (
+            <>
+              <p className="text-sm mb-6">Upload a recording to get started.</p>
+              <Link href="/upload"><Button>Upload First Recording</Button></Link>
+            </>
+          ) : (
+            <p className="text-sm">No approved visit summaries yet. Your clinician will approve them before they appear here.</p>
+          )}
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -149,12 +166,14 @@ export default function VisitsPage() {
                           <Clock className="h-3 w-3" />{(visit.audio_duration_seconds / 60).toFixed(1)}m
                         </span>
                       )}
-                      <button
-                        onClick={e => handleDelete(visit.id, e)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {isClinician && (
+                        <button
+                          onClick={e => handleDelete(visit.id, e)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
                   </div>

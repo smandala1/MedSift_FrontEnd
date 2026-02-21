@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Upload, FileText, BarChart3,
-  LogOut, ChevronLeft, ChevronRight, Stethoscope, User,
+  LogOut, ChevronLeft, ChevronRight, Stethoscope, User, Pill,
 } from "lucide-react";
 import type { AuthUser } from "@/types";
 
@@ -29,8 +29,9 @@ export function Sidebar({ user, onLogout, collapsed, onToggle }: SidebarProps) {
         { href: "/analytics", label: "Analytics", icon: BarChart3 },
       ]
     : [
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { href: "/visits", label: "My Visits", icon: FileText },
+        { href: "/dashboard",    label: "Dashboard",   icon: LayoutDashboard },
+        { href: "/visits",       label: "My Visits",   icon: FileText        },
+        { href: "/medications",  label: "Medications", icon: Pill            },
       ];
 
   return (
@@ -61,22 +62,44 @@ export function Sidebar({ user, onLogout, collapsed, onToggle }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-2 space-y-1">
+      <nav className="flex-1 py-4 px-2 space-y-0.5">
         {navItems.map((item) => {
           const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                active
-                  ? "bg-primary/10 text-primary"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              }`}
               title={collapsed ? item.label : undefined}
+              className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                active
+                  ? "bg-primary/10 text-primary shadow-sm"
+                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              }`}
             >
-              <item.icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-primary" : "text-slate-400"}`} />
-              {!collapsed && <span>{item.label}</span>}
+              {/* Active / hover left accent bar */}
+              <span
+                className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full transition-all duration-200 ${
+                  active
+                    ? "h-6 bg-primary opacity-100"
+                    : "h-0 bg-primary opacity-0 group-hover:h-5 group-hover:opacity-40"
+                }`}
+              />
+              {/* Icon with scale on hover */}
+              <item.icon
+                className={`h-[18px] w-[18px] shrink-0 transition-all duration-200 ${
+                  active
+                    ? "text-primary"
+                    : "text-slate-400 group-hover:text-primary/70 group-hover:scale-110"
+                }`}
+              />
+              {/* Label with subtle slide on hover */}
+              {!collapsed && (
+                <span className={`transition-all duration-200 ${
+                  active ? "" : "group-hover:translate-x-0.5"
+                }`}>
+                  {item.label}
+                </span>
+              )}
             </Link>
           );
         })}
