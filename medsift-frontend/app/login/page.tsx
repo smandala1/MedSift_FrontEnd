@@ -57,7 +57,7 @@ function LoginForm() {
 
   return (
     <div
-      className="min-h-[calc(100vh-4rem)] flex items-center justify-center relative overflow-hidden px-4 py-12"
+      className="min-h-screen flex items-center justify-center relative overflow-hidden px-4 py-12"
       style={{ background: "linear-gradient(145deg,#060f24 0%,#0a1f4a 40%,#061a12 100%)" }}
     >
       {/* Background decorations */}

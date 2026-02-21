@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Upload, FileText, BarChart3,
@@ -14,11 +13,12 @@ import type { AuthUser } from "@/types";
 interface SidebarProps {
   user: AuthUser;
   onLogout: () => void;
+  collapsed: boolean;
+  onToggle: () => void;
 }
 
-export function Sidebar({ user, onLogout }: SidebarProps) {
+export function Sidebar({ user, onLogout, collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
   const isClinician = user.role === "clinician";
 
   const navItems = isClinician
@@ -53,7 +53,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
           )}
         </Link>
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={onToggle}
           className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-slate-100 text-slate-400 shrink-0"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -87,11 +87,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
         {!collapsed ? (
           <div className="flex items-center gap-3 mb-3 px-1">
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              {isClinician ? (
-                <Stethoscope className="h-4 w-4 text-primary" />
-              ) : (
-                <User className="h-4 w-4 text-primary" />
-              )}
+              {isClinician ? <Stethoscope className="h-4 w-4 text-primary" /> : <User className="h-4 w-4 text-primary" />}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium truncate">{user.name}</p>
@@ -99,13 +95,9 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
             </div>
           </div>
         ) : (
-          <div className="flex justify-center mb-3">
+          <div className="flex justify-center mb-3" title={user.name}>
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-              {isClinician ? (
-                <Stethoscope className="h-4 w-4 text-primary" />
-              ) : (
-                <User className="h-4 w-4 text-primary" />
-              )}
+              {isClinician ? <Stethoscope className="h-4 w-4 text-primary" /> : <User className="h-4 w-4 text-primary" />}
             </div>
           </div>
         )}

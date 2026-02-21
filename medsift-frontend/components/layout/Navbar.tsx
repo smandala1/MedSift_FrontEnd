@@ -5,32 +5,32 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, LayoutDashboard, Stethoscope, Bell } from "lucide-react";
+import { LogOut, LayoutDashboard, Stethoscope, User } from "lucide-react";
 import type { AuthUser } from "@/types";
 
 export function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("medsift_user");
     setUser(stored ? JSON.parse(stored) : null);
-
-    // Check pending approvals count (clinician only)
-    const pending = JSON.parse(localStorage.getItem("medsift_pending") || "[]") as number[];
-    setPendingCount(pending.length);
   }, [pathname]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("medsift_user");
@@ -38,15 +38,23 @@ export function Navbar() {
     router.push("/login");
   };
 
-  const isPublic = pathname === "/" || pathname === "/login";
   const isClinician = user?.role === "clinician";
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-slate-950/95">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-16 items-center justify-between">
-        {/* Logo — object-cover crops whitespace from PNG */}
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-[#060f24]/80 backdrop-blur-xl shadow-lg shadow-black/10"
+          : "bg-transparent"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-6 flex h-20 items-center">
+        {/* Left spacer for centering */}
+        <div className="flex-1" />
+
+        {/* Center: Logo — always links home */}
         <Link href="/" className="flex items-center">
-          <div className="relative w-[180px] h-[50px]">
+          <div className="relative w-[160px] h-[44px]">
             <Image
               src="/logo.png"
               alt="MedSift AI"
@@ -57,62 +65,26 @@ export function Navbar() {
           </div>
         </Link>
 
-        {!isPublic && user && (
-          <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
-            <NavLink href="/dashboard" label="Dashboard" pathname={pathname} />
-            {/* Clinician-only nav items */}
-            {isClinician && (
-              <>
-                <NavLink href="/upload" label="New Recording" pathname={pathname} />
-                <NavLink href="/visits" label="Visits" pathname={pathname} />
-                <NavLink href="/analytics" label="Analytics" pathname={pathname} />
-              </>
-            )}
-            {/* Patient-only nav items */}
-            {!isClinician && (
-              <NavLink href="/visits" label="My Visits" pathname={pathname} />
-            )}
-          </nav>
-        )}
-
-        <div className="flex items-center gap-3">
-          {/* Pending approvals bell (clinician only) */}
-          {isClinician && pendingCount > 0 && (
-            <Link href="/visits" className="relative">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-4 w-4 text-amber-600" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] text-white flex items-center justify-center font-bold">
-                  {pendingCount}
-                </span>
-              </Button>
-            </Link>
-          )}
-
+        {/* Right: Auth */}
+        <div className="flex-1 flex justify-end">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 text-sm">
-                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 text-sm text-white/80 hover:text-white hover:bg-white/10"
+                >
+                  <div className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center border border-white/10">
                     {isClinician ? (
-                      <Stethoscope className="h-4 w-4 text-primary" />
+                      <Stethoscope className="h-3.5 w-3.5 text-[#29b6f6]" />
                     ) : (
-                      <User className="h-4 w-4 text-primary" />
+                      <User className="h-3.5 w-3.5 text-[#00c853]" />
                     )}
                   </div>
                   <span className="hidden sm:inline">{user.name}</span>
-                  <Badge
-                    variant="outline"
-                    className={isClinician
-                      ? "border-blue-300 text-blue-700 text-[10px] px-1.5"
-                      : "border-green-300 text-green-700 text-[10px] px-1.5"}
-                  >
-                    {user.role}
-                  </Badge>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel className="text-xs text-muted-foreground">{user.email}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard" className="cursor-pointer">
                     <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
@@ -126,8 +98,14 @@ export function Navbar() {
             </DropdownMenu>
           ) : (
             <Link href="/login">
-              <Button size="sm" className="font-semibold gap-1.5 text-white border-0"
-                style={{ background: "linear-gradient(135deg,#1565c0,#29b6f6)", boxShadow: "0 2px 12px rgba(21,101,192,0.35)" }}>
+              <Button
+                size="sm"
+                className="font-semibold text-white border-0 rounded-full px-6 transition-all hover:opacity-90"
+                style={{
+                  background: "linear-gradient(135deg,#1565c0,#29b6f6)",
+                  boxShadow: "0 2px 16px rgba(21,101,192,0.3)",
+                }}
+              >
                 Sign in
               </Button>
             </Link>
@@ -135,21 +113,5 @@ export function Navbar() {
         </div>
       </div>
     </header>
-  );
-}
-
-function NavLink({ href, label, pathname }: { href: string; label: string; pathname: string }) {
-  const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
-  return (
-    <Link
-      href={href}
-      className={`px-3 py-1.5 rounded-md transition-colors ${
-        active
-          ? "bg-primary/10 text-primary font-semibold"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted"
-      }`}
-    >
-      {label}
-    </Link>
   );
 }
