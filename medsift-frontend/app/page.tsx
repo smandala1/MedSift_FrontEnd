@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -127,41 +128,29 @@ export default function HomePage() {
         {/* ── Hero content ─────────────────────────────────────────── */}
         <div
           className="relative flex flex-col items-center justify-center text-center px-4 sm:px-6"
-          style={{ minHeight: "92vh", paddingTop: "5rem", paddingBottom: "5rem" }}
+          style={{ minHeight: "92vh", paddingTop: "3rem", paddingBottom: "3rem" }}
         >
           {/* Hackathon badge */}
-          <div className="mb-8" style={{ animation: "fadeSlideUp 0.6s ease both" }}>
+          <div className="mb-5" style={{ animation: "fadeSlideUp 0.6s ease both" }}>
             <Badge className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full"
               style={{ background: "rgba(41,182,246,0.12)", color: "#29b6f6", border: "1px solid rgba(41,182,246,0.3)", backdropFilter: "blur(8px)" }}>
               <Star className="h-3 w-3" /> Hacklytics 2026 @ Georgia Tech
             </Badge>
           </div>
 
-          {/* Wordmark — transparent, no white box */}
-          <div className="flex items-center justify-center gap-2 mb-8" style={{ animation: "fadeSlideUp 0.7s ease both" }}>
-            <svg viewBox="0 0 60 60" width="64" height="64" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="hc" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#29b6f6"/><stop offset="100%" stopColor="#1565c0"/></linearGradient>
-                <linearGradient id="hf" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#26c6da"/><stop offset="100%" stopColor="#00c853"/></linearGradient>
-              </defs>
-              <rect x="5"  y="12" width="14" height="38" rx="4" fill="url(#hc)" opacity="0.95"/>
-              <rect x="0"  y="24" width="24" height="14" rx="4" fill="url(#hc)" opacity="0.95"/>
-              <polygon points="14,14 38,14 31,32 21,32" fill="url(#hf)" opacity="0.95"/>
-              <rect x="21" y="32" width="10" height="12" rx="3" fill="url(#hf)" opacity="0.95"/>
-              <rect x="25" y="4"  width="7"  height="7"  rx="2" fill="#00c853" opacity="0.9"/>
-              <rect x="34" y="2"  width="5"  height="5"  rx="1.5" fill="#29b6f6" opacity="0.8"/>
-              <rect x="41" y="8"  width="4"  height="4"  rx="1" fill="#26c6da" opacity="0.7"/>
-              <polyline points="0,52 8,52 12,45 16,57 20,40 24,52 44,52 58,52" stroke="#29b6f6" strokeWidth="2" strokeLinecap="round" fill="none"/>
-            </svg>
-            <span className="font-black italic leading-none" style={{ fontSize: "clamp(2.8rem,6vw,4.2rem)", letterSpacing: "-0.02em" }}>
-              <span style={{ background: "linear-gradient(90deg,#29b6f6,#1565c0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Med</span>
-              <span style={{ background: "linear-gradient(90deg,#43a047,#00c853)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Sift</span>
-            </span>
-            <span className="font-black text-white rounded-xl px-3 py-1.5 leading-none"
-              style={{ fontSize: "clamp(1.6rem,3.5vw,2.4rem)", background: "#1a237e" }}>AI</span>
+          {/* Brand logo */}
+          <div className="mb-4" style={{ animation: "fadeSlideUp 0.7s ease both" }}>
+            <Image
+              src="/logo.png"
+              alt="MedSift AI"
+              width={320}
+              height={213}
+              className="object-contain"
+              priority
+            />
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-5 max-w-3xl"
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-4 max-w-3xl"
             style={{ animation: "fadeSlideUp 0.8s ease both" }}>
             Sift through medical conversations.
             <br />
@@ -170,14 +159,14 @@ export default function HomePage() {
             </span>
           </h1>
 
-          <p className="max-w-2xl text-base sm:text-lg mb-10 leading-relaxed"
+          <p className="max-w-2xl text-base sm:text-lg mb-8 leading-relaxed"
             style={{ color: "#8cb8d4", animation: "fadeSlideUp 0.9s ease both" }}>
             Turn patient-doctor audio into structured care plans, SOAP notes, risk scores,
             and clinical research — fully local, zero cost, zero cloud.
           </p>
 
           {/* CTA buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-12" style={{ animation: "fadeSlideUp 1s ease both" }}>
+          <div className="flex flex-col sm:flex-row gap-4 mb-10" style={{ animation: "fadeSlideUp 1s ease both" }}>
             <Link href="/login?role=clinician">
               <Button size="lg" className="font-bold px-9 gap-2 text-white border-0 transition-transform hover:scale-105"
                 style={{ background: "linear-gradient(135deg,#1565c0,#29b6f6)", boxShadow: "0 6px 28px rgba(21,101,192,0.45)", fontSize: "1rem" }}>
@@ -215,29 +204,36 @@ export default function HomePage() {
       </section>
 
       {/* ── PIPELINE ──────────────────────────────────────────────── */}
-      <section className="py-16 border-b" style={{ background: "#f0f7ff" }}>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <h2 className="text-center text-xs font-bold uppercase tracking-widest mb-10" style={{ color: "#1565c0" }}>
-            How It Works
-          </h2>
-          <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3">
+      <section className="py-20 relative overflow-hidden"
+        style={{ background: "linear-gradient(145deg,#060f24 0%,#0a1f4a 40%,#061a12 100%)" }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-14">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] mb-3" style={{ color: "#29b6f6" }}>
+              How It Works
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-black text-white">
+              From audio to care plan in <span style={{ color: "#00c853" }}>6 steps</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-8">
             {pipeline.map((step, i) => (
-              <div key={step.label} className="flex items-center gap-2 sm:gap-3">
-                <div className="text-center group">
-                  <div
-                    className="h-14 w-14 mx-auto rounded-2xl bg-white border-2 shadow-md flex items-center justify-center text-2xl mb-2 transition-transform group-hover:scale-110"
-                    style={{ borderColor: "#29b6f630" }}>
+              <div key={step.label} className="group">
+                <div className="flex flex-col items-center text-center">
+                  <div className="text-[10px] font-bold tracking-widest uppercase mb-3"
+                    style={{ color: "rgba(41,182,246,0.5)" }}>
+                    Step {String(i + 1).padStart(2, "0")}
+                  </div>
+                  <div className="h-24 w-24 rounded-2xl flex items-center justify-center text-3xl mb-4 transition-all duration-300 group-hover:scale-110"
+                    style={{
+                      background: "rgba(41,182,246,0.06)",
+                      border: "1px solid rgba(41,182,246,0.15)",
+                    }}>
                     {step.icon}
                   </div>
-                  <p className="text-xs font-bold" style={{ color: "#0d2352" }}>{step.label}</p>
-                  <p className="text-[10px] text-slate-400">{step.sub}</p>
+                  <p className="font-bold text-sm text-white mb-1">{step.label}</p>
+                  <p className="text-xs" style={{ color: "#6a9ab8" }}>{step.sub}</p>
                 </div>
-                {i < pipeline.length - 1 && (
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="h-0.5 w-6 sm:w-8 rounded-full" style={{ background: "linear-gradient(90deg,#29b6f6,#00c853)" }} />
-                    <ArrowRight className="h-4 w-4" style={{ color: "#29b6f6", marginTop: "-6px" }} />
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -245,43 +241,42 @@ export default function HomePage() {
       </section>
 
       {/* ── FEATURES ──────────────────────────────────────────────── */}
-      <section className="py-20" style={{ background: "#ffffff" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <section className="py-20 relative overflow-hidden" style={{ background: "#0d1b3e" }}>
+        {/* Subtle glow orbs */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full" style={{ background: "radial-gradient(circle,rgba(21,101,192,0.08) 0%,transparent 70%)" }} />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full" style={{ background: "radial-gradient(circle,rgba(0,200,83,0.06) 0%,transparent 70%)" }} />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3" style={{ color: "#0d2352" }}>
+            <p className="text-xs font-bold uppercase tracking-[0.25em] mb-3" style={{ color: "#29b6f6" }}>
+              Full-Stack Intelligence
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3 text-white">
               Everything in one pipeline
             </h2>
-            <p className="text-slate-500 max-w-xl mx-auto text-sm sm:text-base">
+            <p className="max-w-xl mx-auto text-sm sm:text-base" style={{ color: "#6a9ab8" }}>
               Six specialised modules, one local stack, end-to-end intelligence — from recording to care plan in seconds.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((f, idx) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {features.map((f) => (
               <div
                 key={f.title}
-                className="group rounded-2xl border bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-default"
+                className="group rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 cursor-default"
                 style={{
-                  borderColor: "#e8f0fe",
-                  animationDelay: `${idx * 0.08}s`,
-                  borderLeft: `4px solid ${f.color}20`,
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
                 }}
               >
-                {/* Number + icon row */}
-                <div className="flex items-center justify-between mb-5">
-                  <div className="h-11 w-11 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
-                    style={{ background: f.bg }}>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110"
+                    style={{ background: f.color + "18" }}>
                     <f.icon className="h-5 w-5" style={{ color: f.color }} />
                   </div>
-                  <span className="text-4xl font-black" style={{ color: f.color + "20", letterSpacing: "-0.04em" }}>{f.num}</span>
+                  <h3 className="font-bold text-sm text-white">{f.title}</h3>
                 </div>
-
-                <h3 className="font-bold text-base mb-2" style={{ color: "#0d2352" }}>{f.title}</h3>
-                <p className="text-sm leading-relaxed text-slate-500">{f.desc}</p>
-
-                {/* Hover accent line */}
-                <div className="h-0.5 mt-5 rounded-full transition-all duration-300 w-0 group-hover:w-full"
-                  style={{ background: `linear-gradient(90deg,${f.color},${f.color}80)` }} />
+                <p className="text-sm leading-relaxed" style={{ color: "#7a9bb8" }}>{f.desc}</p>
               </div>
             ))}
           </div>
@@ -289,14 +284,9 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA STRIP ─────────────────────────────────────────────── */}
-      <section className="py-16 text-white text-center relative overflow-hidden"
+      <section className="py-16 text-white text-center"
         style={{ background: "linear-gradient(135deg,#0d2352 0%,#1565c0 50%,#00695c 100%)" }}>
-        {/* subtle ECG in bg */}
-        <svg aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.08 }}>
-          <polyline points="0,50 100,50 120,50 135,30 150,70 165,20 180,80 195,50 350,50 600,50 800,50 1440,50"
-            stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round"/>
-        </svg>
-        <div className="relative">
+        <div>
           <h2 className="text-2xl sm:text-3xl font-black mb-3">Ready to process your first recording?</h2>
           <p className="mb-8 text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>Sign in as a clinician or patient to get started.</p>
           <Link href="/login">
@@ -309,14 +299,14 @@ export default function HomePage() {
       </section>
 
       {/* ── TECH STACK ────────────────────────────────────────────── */}
-      <section className="py-12 border-t" style={{ background: "#f0f7ff" }}>
+      <section className="py-12" style={{ background: "#0a1628" }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-xs uppercase tracking-widest text-slate-400 mb-6">Built with</p>
+          <p className="text-xs uppercase tracking-widest mb-6" style={{ color: "#4a7a94" }}>Built with</p>
           <div className="flex flex-wrap justify-center gap-3">
             {stack.map(([name, color]) => (
               <span key={name}
-                className="px-4 py-1.5 rounded-full text-sm font-bold border bg-white shadow-sm transition-shadow hover:shadow-md"
-                style={{ color, borderColor: color + "30" }}>
+                className="px-4 py-1.5 rounded-full text-sm font-bold transition-colors"
+                style={{ color, background: "rgba(255,255,255,0.04)", border: `1px solid ${color}25` }}>
                 {name}
               </span>
             ))}
@@ -325,9 +315,9 @@ export default function HomePage() {
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────────── */}
-      <footer className="py-8 border-t text-center text-xs text-slate-400 px-4">
+      <footer className="py-8 text-center text-xs px-4" style={{ background: "#060f24", color: "#3d6a84" }}>
         <p className="mb-1">
-          <strong>Disclaimer:</strong> MedSift AI is for informational purposes only. It does not
+          <strong style={{ color: "#4a7a94" }}>Disclaimer:</strong> MedSift AI is for informational purposes only. It does not
           provide medical diagnoses or replace professional medical advice.
         </p>
         <p>© 2026 MedSift AI · Hacklytics 2026 @ Georgia Tech · MIT License</p>

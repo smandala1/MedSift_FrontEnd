@@ -12,7 +12,7 @@ interface MedSiftLogoProps {
  * MedSift AI official brand logo (PNG from public/logo.png).
  */
 export function MedSiftLogo({ variant = "full", className = "", height = 40 }: MedSiftLogoProps) {
-  const width = variant === "full" ? Math.round(height * 3.5) : height;
+  const width = variant === "full" ? Math.round(height * 1.5) : height;
 
   return (
     <Image

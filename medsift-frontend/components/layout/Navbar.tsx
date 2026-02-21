@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { MedSiftLogo } from "@/components/MedSiftLogo";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,7 +25,7 @@ export function Navbar() {
 
   useEffect(() => {
     const stored = localStorage.getItem("medsift_user");
-    if (stored) setUser(JSON.parse(stored));
+    setUser(stored ? JSON.parse(stored) : null);
 
     // Check pending approvals count (clinician only)
     const pending = JSON.parse(localStorage.getItem("medsift_pending") || "[]") as number[];
@@ -34,6 +34,7 @@ export function Navbar() {
 
   const handleLogout = () => {
     localStorage.removeItem("medsift_user");
+    setUser(null);
     router.push("/login");
   };
 
@@ -43,10 +44,16 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-slate-950/95">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-16 items-center justify-between">
-        {/* Logo — white pill wrapper handles dark mode */}
-        <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
-          <div className="dark:bg-white dark:rounded-xl dark:px-2 dark:py-0.5">
-            <MedSiftLogo height={36} />
+        {/* Logo — object-cover crops whitespace from PNG */}
+        <Link href="/" className="flex items-center">
+          <div className="relative w-[180px] h-[50px]">
+            <Image
+              src="/logo.png"
+              alt="MedSift AI"
+              fill
+              className="object-cover object-center"
+              priority
+            />
           </div>
         </Link>
 
@@ -119,7 +126,10 @@ export function Navbar() {
             </DropdownMenu>
           ) : (
             <Link href="/login">
-              <Button size="sm" className="bg-primary hover:bg-primary/90">Sign in</Button>
+              <Button size="sm" className="font-semibold gap-1.5 text-white border-0"
+                style={{ background: "linear-gradient(135deg,#1565c0,#29b6f6)", boxShadow: "0 2px 12px rgba(21,101,192,0.35)" }}>
+                Sign in
+              </Button>
             </Link>
           )}
         </div>
