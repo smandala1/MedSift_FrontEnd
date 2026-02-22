@@ -173,12 +173,12 @@ export default function UploadPage() {
     }
   };
 
-  const riskColor = analyzeResult?.risk_assessment.risk_level === "high"
-    ? "text-red-600" : analyzeResult?.risk_assessment.risk_level === "medium"
+  const riskColor = analyzeResult?.risk_assessment?.risk_level === "high"
+    ? "text-red-600" : analyzeResult?.risk_assessment?.risk_level === "medium"
     ? "text-amber-600" : "text-green-600";
 
-  const riskBg = analyzeResult?.risk_assessment.risk_level === "high"
-    ? "bg-red-50 border-red-200" : analyzeResult?.risk_assessment.risk_level === "medium"
+  const riskBg = analyzeResult?.risk_assessment?.risk_level === "high"
+    ? "bg-red-50 border-red-200" : analyzeResult?.risk_assessment?.risk_level === "medium"
     ? "bg-amber-50 border-amber-200" : "bg-green-50 border-green-200";
 
   const fmtTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
