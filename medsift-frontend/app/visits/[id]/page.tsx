@@ -248,17 +248,54 @@ export default function VisitDetailPage() {
 
       {/* ── Clinician approval banner ─────────────────────────── */}
       {isClinician && isPending && (
-        <div className="mb-6 flex items-start gap-3 p-4 rounded-2xl border bg-amber-50 border-amber-300">
-          <Bell className="h-5 w-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
-          <div className="flex-1">
-            <p className="font-semibold text-amber-800">This visit needs your approval</p>
-            <p className="text-sm text-amber-700 mt-0.5">
-              Review the summary below, then approve to make it visible in the patient portal.
-            </p>
+        <div className="mb-6 rounded-2xl border bg-amber-50 border-amber-300 overflow-hidden">
+          <div className="flex items-start gap-3 p-4">
+            <Bell className="h-5 w-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
+            <div className="flex-1">
+              <p className="font-semibold text-amber-800">This visit needs your approval</p>
+              <p className="text-sm text-amber-700 mt-0.5">
+                Review the summary and grounding score below before approving.
+              </p>
+            </div>
           </div>
-          <Button onClick={approveVisit} className="bg-green-600 hover:bg-green-700 text-white gap-2 shrink-0">
-            <CheckCircle2 className="h-4 w-4" /> Approve &amp; Release
-          </Button>
+          {grounding && (
+            <div className="px-4 pb-4">
+              <div className={`flex items-center justify-between p-4 rounded-xl ${
+                grounding.overall_score >= 75 ? "bg-green-100 border border-green-300" :
+                grounding.overall_score >= 50 ? "bg-yellow-100 border border-yellow-300" :
+                "bg-red-100 border border-red-300"
+              }`}>
+                <div className="flex items-center gap-4">
+                  <div className={`h-14 w-14 rounded-xl flex items-center justify-center text-white font-bold text-lg ${
+                    grounding.overall_score >= 75 ? "bg-green-600" :
+                    grounding.overall_score >= 50 ? "bg-yellow-600" :
+                    "bg-red-600"
+                  }`}>
+                    {grounding.overall_score}
+                  </div>
+                  <div>
+                    <p className="font-bold">Evidence Grounding Score</p>
+                    <p className="text-sm text-muted-foreground">
+                      {grounding.grounded_count} of {grounding.total_items} items verified against transcript
+                      {grounding.flagged_count > 0 && (
+                        <span className="text-amber-700 font-medium"> &middot; {grounding.flagged_count} flagged for review</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={approveVisit} className="bg-green-600 hover:bg-green-700 text-white gap-2 shrink-0">
+                  <CheckCircle2 className="h-4 w-4" /> Approve &amp; Release
+                </Button>
+              </div>
+            </div>
+          )}
+          {!grounding && (
+            <div className="px-4 pb-4 flex justify-end">
+              <Button onClick={approveVisit} className="bg-green-600 hover:bg-green-700 text-white gap-2">
+                <CheckCircle2 className="h-4 w-4" /> Approve &amp; Release
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
