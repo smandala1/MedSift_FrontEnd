@@ -1,339 +1,398 @@
+"use client";
+
 import Link from "next/link";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Mic, ShieldCheck, FileText, Activity,
-  FlaskConical, BookOpen, ArrowRight, Star, Zap, Lock,
+  FlaskConical, ArrowRight, Search,
+  Lock, Zap, CheckCircle2, Clock, Brain, Star,
 } from "lucide-react";
 
-const features = [
-  { icon: Mic,          title: "Local Transcription",  desc: "OpenAI Whisper runs on your machine — audio never leaves your network.",                                                   color: "#1565c0", bg: "#e3f2fd", num: "01" },
-  { icon: ShieldCheck,  title: "PHI Redaction",         desc: "Microsoft Presidio strips names, SSNs, phone numbers, and MRNs before any AI sees the text.",                             color: "#7b1fa2", bg: "#f3e5f5", num: "02" },
-  { icon: FileText,     title: "Care Plans & SOAP",     desc: "LLaMA 3 extracts medications, tests, follow-ups, and a full clinical SOAP note with evidence quotes.",                    color: "#00796b", bg: "#e0f2f1", num: "03" },
-  { icon: Activity,     title: "Risk Scoring",          desc: "Hybrid rule + LLM engine flags red flags and scores patient risk 0–100 in real time.",                                    color: "#c62828", bg: "#ffebee", num: "04" },
-  { icon: FlaskConical, title: "Clinical Trials",       desc: "Matches patient conditions to actively recruiting ClinicalTrials.gov studies automatically.",                             color: "#0277bd", bg: "#e1f5fe", num: "05" },
-  { icon: BookOpen,     title: "Literature Search",     desc: "Semantic Scholar retrieves peer-reviewed papers ranked by citation impact — and learns from clinician feedback.",          color: "#e65100", bg: "#fff3e0", num: "06" },
-];
-
-const stats = [
-  { value: "100%", label: "Local Processing", color: "#00c853" },
-  { value: "$0",   label: "API Cost",         color: "#29b6f6" },
-  { value: "5",    label: "Pipeline Stages",  color: "#1565c0" },
-  { value: "HIPAA",label: "Aware Design",     color: "#7b1fa2" },
-];
-
-const pipeline = [
-  { label: "Audio",      icon: "🎙️", sub: ".mp3 / .wav" },
-  { label: "Whisper",    icon: "📝", sub: "Transcription" },
-  { label: "Presidio",   icon: "🛡️", sub: "PHI Redaction" },
-  { label: "LLaMA 3",   icon: "🤖", sub: "Extraction" },
-  { label: "Risk Engine",icon: "⚡", sub: "Scoring" },
-  { label: "Care Plan",  icon: "📋", sub: "Output" },
-];
-
-const stack = [
-  ["Next.js",  "#000000"],
-  ["FastAPI",  "#009688"],
-  ["Whisper",  "#1565c0"],
-  ["Presidio", "#7b1fa2"],
-  ["LLaMA 3",  "#e65100"],
-  ["SQLite",   "#37474f"],
-];
+/* ─────────────────────────────────────────────────────────────────────────────
+   MedSift AI — Healthcare Landing Page with Circular Image Cluster
+   ───────────────────────────────────────────────────────────────────────────── */
 
 export default function HomePage() {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
+
   return (
-    <div className="flex flex-col">
-      {/* ── HERO ─────────────────────────────────────────────────── */}
-      <section
-        className="relative overflow-hidden text-white"
-        style={{
-          minHeight: "92vh",
-          background: "linear-gradient(145deg,#060f24 0%,#0a1f4a 40%,#061a12 100%)",
-        }}
-      >
-        {/* ── Animated SVG healthcare background ─────────────────── */}
-        <svg
-          aria-hidden
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient id="ecgGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%"   stopColor="#29b6f6" stopOpacity="0"/>
-              <stop offset="25%"  stopColor="#29b6f6" stopOpacity="0.7"/>
-              <stop offset="75%"  stopColor="#00c853" stopOpacity="0.5"/>
-              <stop offset="100%" stopColor="#00c853" stopOpacity="0"/>
-            </linearGradient>
-            <linearGradient id="ecgGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%"   stopColor="#1565c0" stopOpacity="0"/>
-              <stop offset="40%"  stopColor="#1565c0" stopOpacity="0.4"/>
-              <stop offset="100%" stopColor="#26c6da" stopOpacity="0"/>
-            </linearGradient>
-          </defs>
-
-          {/* Subtle hex grid */}
-          {[...Array(6)].map((_,r) => [...Array(12)].map((_,c) => {
-            const x = c*130 + (r%2===0?0:65), y = r*112;
-            return <path key={`h${r}${c}`} d={`M${x+65},${y} L${x+97},${y+56} L${x+65},${y+112} L${x},${y+112} L${x-32},${y+56} L${x},${y} Z`} fill="none" stroke="#29b6f6" strokeOpacity="0.03" strokeWidth="1"/>
-          }))}
-
-          {/* ECG wave 1 — draws in on load */}
-          <polyline className="ecg1"
-            points="0,380 80,380 110,380 130,300 155,460 175,230 195,510 215,380 280,380 500,380 580,380 620,358 640,402 660,358 680,380 900,380 1440,380"
-            stroke="url(#ecgGrad1)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-
-          {/* ECG wave 2 — secondary, draws in slower */}
-          <polyline className="ecg2"
-            points="0,560 160,560 200,560 220,490 245,630 265,430 285,680 305,560 400,560 700,560 780,540 800,580 820,540 850,560 1100,560 1440,560"
-            stroke="url(#ecgGrad2)" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-
-          {/* Animated glow orbs */}
-          <circle className="glow1" cx="18%"  cy="25%" r="200" fill="#1565c0" fillOpacity="0.06"/>
-          <circle className="glow2" cx="82%"  cy="65%" r="240" fill="#00c853" fillOpacity="0.05"/>
-          <circle          cx="55%"  cy="85%" r="140" fill="#29b6f6" fillOpacity="0.03"/>
-
-          {/* Medical cross marks — 3 animated groups */}
-          {[[95,90],[370,180],[680,70],[1050,130],[1330,90]].map(([x,y],i)=>(
-            <g key={`ca${i}`} className="c1" transform={`translate(${x},${y})`}>
-              <rect x="-4" y="-14" width="8" height="28" rx="2" fill="#29b6f6"/>
-              <rect x="-14" y="-4" width="28" height="8" rx="2" fill="#29b6f6"/>
-            </g>
-          ))}
-          {[[200,500],[500,430],[820,490],[1150,520],[1380,440]].map(([x,y],i)=>(
-            <g key={`cb${i}`} className="c2" transform={`translate(${x},${y})`}>
-              <rect x="-3" y="-11" width="6" height="22" rx="2" fill="#00c853"/>
-              <rect x="-11" y="-3" width="22" height="6" rx="2" fill="#00c853"/>
-            </g>
-          ))}
-          {[[80,700],[300,650],[620,720],[950,660],[1250,690]].map(([x,y],i)=>(
-            <g key={`cc${i}`} className="c3" transform={`translate(${x},${y})`}>
-              <rect x="-3" y="-10" width="6" height="20" rx="2" fill="#26c6da"/>
-              <rect x="-10" y="-3" width="20" height="6" rx="2" fill="#26c6da"/>
-            </g>
-          ))}
-
-          {/* Floating data pixels */}
-          <rect className="px1" x="1080" y="80"  width="10" height="10" rx="2" fill="#00c853" fillOpacity="0.7"/>
-          <rect className="px2" x="1110" y="58"  width="7"  height="7"  rx="1.5" fill="#29b6f6" fillOpacity="0.7"/>
-          <rect className="px3" x="1098" y="102" width="6"  height="6"  rx="1.5" fill="#1565c0" fillOpacity="0.6"/>
-          <rect className="px4" x="1128" y="88"  width="5"  height="5"  rx="1"   fill="#26c6da" fillOpacity="0.6"/>
-          <rect className="px5" x="1148" y="68"  width="8"  height="8"  rx="1.5" fill="#00c853" fillOpacity="0.5"/>
-
-          <rect className="px2" x="220"  y="110" width="9"  height="9"  rx="2"   fill="#29b6f6" fillOpacity="0.6"/>
-          <rect className="px3" x="245"  y="88"  width="6"  height="6"  rx="1.5" fill="#00c853" fillOpacity="0.5"/>
-          <rect className="px1" x="268"  y="128" width="7"  height="7"  rx="1.5" fill="#1565c0" fillOpacity="0.5"/>
-        </svg>
-
-        {/* ── Hero content ─────────────────────────────────────────── */}
-        <div
-          className="relative flex flex-col items-center justify-center text-center px-4 sm:px-6"
-          style={{ minHeight: "92vh", paddingTop: "3rem", paddingBottom: "3rem" }}
-        >
-          {/* Hackathon badge */}
-          <div className="mb-5" style={{ animation: "fadeSlideUp 0.6s ease both" }}>
-            <Badge className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full"
-              style={{ background: "rgba(41,182,246,0.12)", color: "#29b6f6", border: "1px solid rgba(41,182,246,0.3)", backdropFilter: "blur(8px)" }}>
-              <Star className="h-3 w-3" /> Hacklytics 2026 @ Georgia Tech
-            </Badge>
-          </div>
-
-          {/* SVG wordmark — transparent, no white box */}
-          <div className="flex items-center justify-center gap-3 mb-8" style={{ animation: "fadeSlideUp 0.7s ease both" }}>
-            <svg viewBox="0 0 60 60" width="68" height="68" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="hc" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#29b6f6"/><stop offset="100%" stopColor="#1565c0"/></linearGradient>
-                <linearGradient id="hf" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#26c6da"/><stop offset="100%" stopColor="#00c853"/></linearGradient>
-              </defs>
-              <rect x="5"  y="12" width="14" height="38" rx="4" fill="url(#hc)" opacity="0.95"/>
-              <rect x="0"  y="24" width="24" height="14" rx="4" fill="url(#hc)" opacity="0.95"/>
-              <polygon points="14,14 38,14 31,32 21,32" fill="url(#hf)" opacity="0.95"/>
-              <rect x="21" y="32" width="10" height="12" rx="3" fill="url(#hf)" opacity="0.95"/>
-              <rect x="25" y="4"  width="7"  height="7"  rx="2" fill="#00c853" opacity="0.9"/>
-              <rect x="34" y="2"  width="5"  height="5"  rx="1.5" fill="#29b6f6" opacity="0.8"/>
-              <rect x="41" y="8"  width="4"  height="4"  rx="1" fill="#26c6da" opacity="0.7"/>
-              <polyline points="0,52 8,52 12,45 16,57 20,40 24,52 44,52 58,52" stroke="#29b6f6" strokeWidth="2" strokeLinecap="round" fill="none"/>
-            </svg>
-            <span className="font-black italic leading-none" style={{ fontSize: "clamp(2.8rem,6vw,4.2rem)", letterSpacing: "-0.02em" }}>
-              <span style={{ background: "linear-gradient(90deg,#29b6f6,#1565c0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Med</span>
-              <span style={{ background: "linear-gradient(90deg,#43a047,#00c853)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Sift</span>
-            </span>
-            <span className="font-black text-white rounded-xl px-3 py-1.5 leading-none"
-              style={{ fontSize: "clamp(1.6rem,3.5vw,2.4rem)", background: "#1a237e" }}>AI</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-4 max-w-3xl"
-            style={{ animation: "fadeSlideUp 0.8s ease both" }}>
-            Sift through medical conversations.
-            <br />
-            <span style={{ background: "linear-gradient(90deg,#29b6f6,#00c853)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-              Surface what matters.
-            </span>
-          </h1>
-
-          <p className="max-w-2xl text-base sm:text-lg mb-8 leading-relaxed"
-            style={{ color: "#8cb8d4", animation: "fadeSlideUp 0.9s ease both" }}>
-            Turn patient-doctor audio into structured care plans, SOAP notes, risk scores,
-            and clinical research — fully local, zero cost, zero cloud.
-          </p>
-
-          {/* CTA buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-10" style={{ animation: "fadeSlideUp 1s ease both" }}>
-            <Link href="/login?role=clinician">
-              <Button size="lg" className="font-bold px-9 gap-2 text-white border-0 transition-transform hover:scale-105"
-                style={{ background: "linear-gradient(135deg,#1565c0,#29b6f6)", boxShadow: "0 6px 28px rgba(21,101,192,0.45)", fontSize: "1rem" }}>
-                Clinician Login <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/login?role=patient">
-              <Button size="lg" className="font-bold px-9 gap-2 text-white border-0 transition-transform hover:scale-105"
-                style={{ background: "linear-gradient(135deg,#1b5e20,#00c853)", boxShadow: "0 6px 28px rgba(0,200,83,0.3)", fontSize: "1rem" }}>
-                Patient Login <ArrowRight className="h-4 w-4" />
-              </Button>
+    <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
+      {/* ── NAVIGATION ─────────────────────────────────────────────────── */}
+      <nav className="absolute top-0 left-0 right-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="MedSift AI"
+              width={180}
+              height={45}
+              className="h-12 w-auto object-contain"
+              priority
+            />
+          </Link>
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#" className="text-sm text-[#0ea5e9] font-semibold border-b-2 border-[#0ea5e9] pb-1">Home</a>
+            <a href="#features" className="text-sm text-gray-600 hover:text-[#0ea5e9] transition-colors font-medium">Features</a>
+            <a href="#how-it-works" className="text-sm text-gray-600 hover:text-[#0ea5e9] transition-colors font-medium">How it Works</a>
+            <a href="#about" className="text-sm text-gray-600 hover:text-[#0ea5e9] transition-colors font-medium">About</a>
+            <Link href="/login" className="text-sm text-gray-600 hover:text-[#0ea5e9] transition-colors font-medium">
+              Login
             </Link>
           </div>
-
-          {/* Trust badges */}
-          <div className="flex flex-wrap justify-center gap-6 text-sm" style={{ color: "#6a9ab8", animation: "fadeSlideUp 1.1s ease both" }}>
-            <span className="flex items-center gap-1.5"><Lock       className="h-4 w-4" style={{ color: "#00c853" }} /> 100% Local</span>
-            <span className="flex items-center gap-1.5"><Zap        className="h-4 w-4" style={{ color: "#29b6f6" }} /> Zero Cloud</span>
-            <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4" style={{ color: "#29b6f6" }} /> PHI Redacted</span>
-            <span className="flex items-center gap-1.5"><Star       className="h-4 w-4" style={{ color: "#00c853" }} /> Evidence-Backed</span>
-          </div>
+          <Link href="/login" className="hidden md:block">
+            <Button className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white rounded-lg px-6 h-11 font-medium">
+              Get Started
+            </Button>
+          </Link>
         </div>
-      </section>
+      </nav>
 
-      {/* ── STATS ROW ─────────────────────────────────────────────── */}
-      <section style={{ background: "#0d2352" }} className="py-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-          {stats.map((s) => (
-            <div key={s.label} className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-black" style={{ color: s.color }}>{s.value}</div>
-              <div className="text-xs font-medium uppercase tracking-widest" style={{ color: "#7aa8c4" }}>{s.label}</div>
+      {/* ── HERO SECTION ───────────────────────────────────────────────── */}
+      <section className="relative min-h-screen pt-28 pb-16 overflow-hidden">
+        {/* Background Decorations */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Top right corner stripes */}
+          <div className="absolute top-16 right-0 w-32 h-32">
+            <div className="absolute top-0 right-8 w-24 h-3 bg-[#0ea5e9] rounded-full transform rotate-[-35deg]" />
+            <div className="absolute top-4 right-4 w-20 h-3 bg-[#0ea5e9]/60 rounded-full transform rotate-[-35deg]" />
+            <div className="absolute top-8 right-0 w-16 h-3 bg-[#0ea5e9]/30 rounded-full transform rotate-[-35deg]" />
+          </div>
+
+          {/* Curved wave lines */}
+          <svg className="absolute bottom-20 left-0 w-[400px] h-[200px] opacity-20" viewBox="0 0 400 200">
+            <path d="M0 100 Q100 50 200 100 T400 100" stroke="#0ea5e9" strokeWidth="1" fill="none" />
+            <path d="M0 120 Q100 70 200 120 T400 120" stroke="#0ea5e9" strokeWidth="1" fill="none" />
+            <path d="M0 140 Q100 90 200 140 T400 140" stroke="#0ea5e9" strokeWidth="1" fill="none" />
+          </svg>
+
+          {/* Dot grid pattern */}
+          <div className="absolute bottom-32 right-[45%] grid grid-cols-5 gap-2">
+            {[...Array(15)].map((_, i) => (
+              <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#0ea5e9]/40" />
+            ))}
+          </div>
+
+          {/* Teal accent shape */}
+          <div className="absolute top-1/4 right-[15%] w-16 h-16 bg-[#0ea5e9] rounded-lg transform rotate-45 opacity-10" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[calc(100vh-180px)]">
+            {/* Left Column - Text */}
+            <div className={`transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+              <h1 className="text-5xl sm:text-6xl lg:text-[68px] font-bold leading-[1.1] mb-6 text-gray-900">
+                AI-Powered{" "}
+                <span className="text-[#0ea5e9]">Medical</span>{" "}
+                Intelligence
+              </h1>
+
+              <p className="text-lg text-gray-600 leading-relaxed mb-8 max-w-md">
+                Transform patient-doctor conversations into structured SOAP notes, 
+                care plans, and risk assessments—fully local, zero cloud, HIPAA-aware.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-4 mb-10">
+                <Link href="/login">
+                  <Button size="lg" className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white rounded-lg h-14 px-8 text-base font-semibold gap-2 group">
+                    Get Started
+                    <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+                <Button size="lg" variant="outline" className="rounded-lg h-14 px-8 border-gray-300 hover:border-[#0ea5e9] hover:text-[#0ea5e9] font-medium">
+                  Learn More
+                </Button>
+              </div>
+
+              {/* Stats */}
+              <div className="flex gap-10">
+                <div>
+                  <div className="text-3xl font-bold text-gray-900">100%</div>
+                  <div className="text-sm text-gray-500">Local Processing</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-gray-900">&lt;30s</div>
+                  <div className="text-sm text-gray-500">Processing Time</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-gray-900">50+</div>
+                  <div className="text-sm text-gray-500">PHI Types Detected</div>
+                </div>
+              </div>
             </div>
-          ))}
+
+            {/* Right Column - Circular Images Cluster */}
+            <div className={`relative transition-all duration-1000 delay-300 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+              <div className="relative w-full h-[550px] lg:h-[600px]">
+                {/* Large circle - top right */}
+                <div className="absolute top-0 right-0 w-[280px] h-[280px] lg:w-[320px] lg:h-[320px]">
+                  <div className="absolute inset-0 rounded-full border-4 border-[#0ea5e9] p-1">
+                    <div className="w-full h-full rounded-full overflow-hidden">
+                      <img
+                        src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face"
+                        alt="Doctor"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Medium circle - bottom right */}
+                <div className="absolute bottom-8 right-4 w-[220px] h-[220px] lg:w-[260px] lg:h-[260px]">
+                  <div className="absolute inset-0 rounded-full border-4 border-[#0ea5e9] p-1">
+                    <div className="w-full h-full rounded-full overflow-hidden">
+                      <img
+                        src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face"
+                        alt="Healthcare professional"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Small circle - left */}
+                <div className="absolute top-1/3 left-0 w-[180px] h-[180px] lg:w-[200px] lg:h-[200px]">
+                  <div className="absolute inset-0 rounded-full border-4 border-[#0ea5e9] p-1">
+                    <div className="w-full h-full rounded-full overflow-hidden">
+                      <img
+                        src="https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=400&h=400&fit=crop&crop=face"
+                        alt="Medical equipment"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Decorative elements */}
+                {/* Cyan filled circle decoration */}
+                <div className="absolute top-[15%] left-[35%] w-12 h-12 bg-[#0ea5e9] rounded-full opacity-20" />
+                
+                {/* Small dots cluster */}
+                <div className="absolute bottom-[30%] left-[25%] grid grid-cols-3 gap-1.5">
+                  {[...Array(9)].map((_, i) => (
+                    <div key={i} className="w-2 h-2 rounded-full bg-[#0ea5e9]/50" />
+                  ))}
+                </div>
+
+                {/* Ring decoration */}
+                <div className="absolute top-[60%] right-[35%] w-8 h-8 rounded-full border-4 border-[#0ea5e9]/30" />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ── PIPELINE ──────────────────────────────────────────────── */}
-      <section className="py-20 relative overflow-hidden"
-        style={{ background: "linear-gradient(145deg,#060f24 0%,#0a1f4a 40%,#061a12 100%)" }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-14">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] mb-3" style={{ color: "#29b6f6" }}>
-              How It Works
-            </p>
-            <h2 className="text-2xl sm:text-3xl font-black text-white">
-              From audio to care plan in <span style={{ color: "#00c853" }}>6 steps</span>
+      {/* ── FEATURES SECTION ───────────────────────────────────────────── */}
+      <section id="features" className="py-24 bg-[#f8fcfc]">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+              Complete <span className="text-[#0ea5e9]">Pipeline</span>
             </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+              Six specialized modules working together to transform audio into actionable care plans.
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-8">
-            {pipeline.map((step, i) => (
-              <div key={step.label} className="group">
-                <div className="flex flex-col items-center text-center">
-                  <div className="text-[10px] font-bold tracking-widest uppercase mb-3"
-                    style={{ color: "rgba(41,182,246,0.5)" }}>
-                    Step {String(i + 1).padStart(2, "0")}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { icon: Mic, title: "Voice Capture", desc: "Record directly in browser or upload audio files. Supports MP3, WAV, M4A, and WebM.", color: "#0ea5e9" },
+              { icon: ShieldCheck, title: "PHI Protection", desc: "Microsoft Presidio automatically redacts 50+ identifier types before AI processing.", color: "#10b981" },
+              { icon: FileText, title: "Care Plans & SOAP", desc: "Generate structured SOAP notes and patient-friendly summaries with evidence quotes.", color: "#8b5cf6" },
+              { icon: Activity, title: "Risk Scoring", desc: "AI scores patient risk 0-100 with red flag detection and follow-up priorities.", color: "#f43f5e" },
+              { icon: FlaskConical, title: "Clinical Trials", desc: "Auto-match patient conditions to actively recruiting ClinicalTrials.gov studies.", color: "#f59e0b" },
+              { icon: Search, title: "PubMed Search", desc: "Find relevant peer-reviewed research papers ranked by citation impact.", color: "#06b6d4" },
+            ].map((feature) => (
+              <Card key={feature.title} className="border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
+                <CardContent className="p-6">
+                  <div 
+                    className="h-14 w-14 rounded-2xl flex items-center justify-center mb-5"
+                    style={{ background: `${feature.color}15` }}
+                  >
+                    <feature.icon className="h-7 w-7" style={{ color: feature.color }} />
                   </div>
-                  <div className="h-24 w-24 rounded-2xl flex items-center justify-center text-3xl mb-4 transition-all duration-300 group-hover:scale-110"
-                    style={{
-                      background: "rgba(41,182,246,0.06)",
-                      border: "1px solid rgba(41,182,246,0.15)",
-                    }}>
-                    {step.icon}
-                  </div>
-                  <p className="font-bold text-sm text-white mb-1">{step.label}</p>
-                  <p className="text-xs" style={{ color: "#6a9ab8" }}>{step.sub}</p>
+                  <h3 className="text-lg font-bold mb-2 text-gray-900">{feature.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ───────────────────────────────────────────────── */}
+      <section id="how-it-works" className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+              How It <span className="text-[#0ea5e9]">Works</span>
+            </h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              Our six-stage pipeline processes your audio entirely on-device in under 30 seconds.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { num: "01", icon: Mic, title: "Record", desc: "Capture the conversation using browser microphone or upload audio" },
+              { num: "02", icon: Brain, title: "Transcribe", desc: "OpenAI Whisper converts speech to text on your device" },
+              { num: "03", icon: ShieldCheck, title: "Protect", desc: "Microsoft Presidio redacts all PHI before AI processing" },
+              { num: "04", icon: FileText, title: "Extract", desc: "LLaMA 3 structures medications, tests, and SOAP notes" },
+              { num: "05", icon: Activity, title: "Analyze", desc: "Hybrid rule + LLM engine scores risk and flags issues" },
+              { num: "06", icon: CheckCircle2, title: "Deliver", desc: "Care plan ready for clinician review and patient access" },
+            ].map((step) => (
+              <div key={step.num} className="relative p-6 rounded-2xl border border-gray-100 hover:border-[#0ea5e9]/50 hover:shadow-lg transition-all group bg-white">
+                <span className="absolute top-6 right-6 text-5xl font-bold text-gray-100 group-hover:text-[#0ea5e9]/20 transition-colors">
+                  {step.num}
+                </span>
+                <div className="h-12 w-12 rounded-xl bg-[#0ea5e9]/10 flex items-center justify-center mb-4 group-hover:bg-[#0ea5e9] transition-colors">
+                  <step.icon className="h-6 w-6 text-[#0ea5e9] group-hover:text-white transition-colors" />
                 </div>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{step.title}</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── FEATURES ──────────────────────────────────────────────── */}
-      <section className="py-20 relative overflow-hidden" style={{ background: "#0d1b3e" }}>
-        {/* Subtle glow orbs */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full" style={{ background: "radial-gradient(circle,rgba(21,101,192,0.08) 0%,transparent 70%)" }} />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full" style={{ background: "radial-gradient(circle,rgba(0,200,83,0.06) 0%,transparent 70%)" }} />
+      {/* ── ABOUT / SECURITY ───────────────────────────────────────────── */}
+      <section id="about" className="py-24 bg-[#f8fcfc]">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+                Your Data <span className="text-[#0ea5e9]">Never Leaves</span> Your Machine
+              </h2>
+              <p className="text-gray-600 text-lg leading-relaxed mb-8">
+                Every stage of processing happens locally. No cloud APIs, no data transfer, 
+                no privacy concerns. Your patients&apos; information stays where it belongs.
+              </p>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-14">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] mb-3" style={{ color: "#29b6f6" }}>
-              Full-Stack Intelligence
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3 text-white">
-              Everything in one pipeline
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { icon: Lock, label: "100% Local Processing" },
+                  { icon: ShieldCheck, label: "HIPAA-Aware Design" },
+                  { icon: Clock, label: "30-Second Processing" },
+                  { icon: Zap, label: "Zero API Costs" },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-3 p-4 rounded-xl bg-white border border-gray-100">
+                    <div className="h-10 w-10 rounded-lg bg-[#0ea5e9]/10 flex items-center justify-center shrink-0">
+                      <item.icon className="h-5 w-5 text-[#0ea5e9]" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div className="rounded-2xl overflow-hidden h-48">
+                    <img src="https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=400&h=300&fit=crop" alt="Medical" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="rounded-2xl overflow-hidden h-56">
+                    <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&h=350&fit=crop" alt="Healthcare" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+                <div className="space-y-4 pt-8">
+                  <div className="rounded-2xl overflow-hidden h-56">
+                    <img src="https://images.unsplash.com/photo-1584982751601-97dcc096659c?w=400&h=350&fit=crop" alt="Medical team" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="rounded-2xl bg-[#0ea5e9] p-6 text-white h-48 flex flex-col justify-center">
+                    <div className="text-4xl font-bold mb-2">50+</div>
+                    <div className="text-white/80">PHI types detected automatically</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ───────────────────────────────────────────────── */}
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl sm:text-5xl font-bold">
+              Trusted by <span className="text-[#0ea5e9]">Clinicians</span>
             </h2>
-            <p className="max-w-xl mx-auto text-sm sm:text-base" style={{ color: "#6a9ab8" }}>
-              Six specialised modules, one local stack, end-to-end intelligence — from recording to care plan in seconds.
-            </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {features.map((f) => (
-              <div
-                key={f.title}
-                className="group rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 cursor-default"
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                }}
-              >
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110"
-                    style={{ background: f.color + "18" }}>
-                    <f.icon className="h-5 w-5" style={{ color: f.color }} />
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { quote: "Finally, a solution that keeps patient data where it belongs—on our own systems.", author: "Dr. Sarah Chen", role: "Chief Medical Officer" },
+              { quote: "The AI-generated SOAP notes save me 20 minutes per patient. Game changer.", author: "Dr. Michael Torres", role: "Family Medicine" },
+              { quote: "Risk scoring helps me prioritize which patients need immediate follow-up.", author: "Dr. Emily Parker", role: "Internal Medicine" },
+            ].map((t, i) => (
+              <Card key={i} className="border border-gray-100 shadow-sm hover:shadow-lg transition-shadow bg-white">
+                <CardContent className="p-6">
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(5)].map((_, j) => (
+                      <Star key={j} className="h-5 w-5 fill-amber-400 text-amber-400" />
+                    ))}
                   </div>
-                  <h3 className="font-bold text-sm text-white">{f.title}</h3>
-                </div>
-                <p className="text-sm leading-relaxed" style={{ color: "#7a9bb8" }}>{f.desc}</p>
-              </div>
+                  <p className="text-gray-700 mb-6 leading-relaxed">&quot;{t.quote}&quot;</p>
+                  <div className="flex items-center gap-3">
+                    <div className="h-11 w-11 rounded-full bg-gradient-to-br from-[#0ea5e9] to-[#06b6d4] flex items-center justify-center text-sm font-bold text-white">
+                      {t.author.split(" ").map(n => n[0]).join("")}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">{t.author}</p>
+                      <p className="text-sm text-gray-500">{t.role}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── CTA STRIP ─────────────────────────────────────────────── */}
-      <section className="py-16 text-white text-center"
-        style={{ background: "linear-gradient(135deg,#0d2352 0%,#1565c0 50%,#00695c 100%)" }}>
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-black mb-3">Ready to process your first recording?</h2>
-          <p className="mb-8 text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>Sign in as a clinician or patient to get started.</p>
+      {/* ── CTA ────────────────────────────────────────────────────────── */}
+      <section className="py-24 bg-[#0ea5e9]">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
+            Ready to transform your practice?
+          </h2>
+          <p className="text-white/80 text-lg mb-10 max-w-2xl mx-auto">
+            Join clinicians saving hours every day with AI-powered documentation.
+          </p>
           <Link href="/login">
-            <Button size="lg" className="font-bold px-10 gap-2 transition-transform hover:scale-105"
-              style={{ background: "#ffffff", color: "#1565c0", fontSize: "1rem" }}>
-              Get Started <ArrowRight className="h-4 w-4" />
+            <Button size="lg" className="bg-white text-[#0ea5e9] hover:bg-gray-100 rounded-lg h-14 px-10 text-base font-semibold gap-2 group shadow-xl">
+              Get Started Free
+              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
         </div>
       </section>
 
-      {/* ── TECH STACK ────────────────────────────────────────────── */}
-      <section className="py-12" style={{ background: "#0a1628" }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-xs uppercase tracking-widest mb-6" style={{ color: "#4a7a94" }}>Built with</p>
-          <div className="flex flex-wrap justify-center gap-3">
-            {stack.map(([name, color]) => (
-              <span key={name}
-                className="px-4 py-1.5 rounded-full text-sm font-bold transition-colors"
-                style={{ color, background: "rgba(255,255,255,0.04)", border: `1px solid ${color}25` }}>
-                {name}
-              </span>
-            ))}
+      {/* ── FOOTER ─────────────────────────────────────────────────────── */}
+      <footer className="py-12 bg-white border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            <Image src="/logo.png" alt="MedSift AI" width={150} height={40} className="h-10 w-auto object-contain" />
+            <div className="flex items-center gap-8 text-sm text-gray-500">
+              <a href="#features" className="hover:text-[#0ea5e9] transition-colors">Features</a>
+              <a href="#how-it-works" className="hover:text-[#0ea5e9] transition-colors">How it Works</a>
+              <a href="#about" className="hover:text-[#0ea5e9] transition-colors">About</a>
+            </div>
+            <p className="text-sm text-gray-500">© 2026 MedSift AI · Hacklytics @ Georgia Tech</p>
+          </div>
+          <div className="mt-8 pt-8 border-t border-gray-100">
+            <p className="text-xs text-gray-400 text-center max-w-2xl mx-auto">
+              <strong>Disclaimer:</strong> MedSift AI is for informational purposes only. It does not provide medical diagnoses.
+            </p>
           </div>
         </div>
-      </section>
-
-      {/* ── FOOTER ────────────────────────────────────────────────── */}
-      <footer className="py-8 text-center text-xs px-4" style={{ background: "#060f24", color: "#3d6a84" }}>
-        <p className="mb-1">
-          <strong style={{ color: "#4a7a94" }}>Disclaimer:</strong> MedSift AI is for informational purposes only. It does not
-          provide medical diagnoses or replace professional medical advice.
-        </p>
-        <p>© 2026 MedSift AI · Hacklytics 2026 @ Georgia Tech · MIT License</p>
       </footer>
-
     </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";
 import type { AuthUser } from "@/types";
 
@@ -27,14 +26,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isPublic = PUBLIC_PATHS.includes(pathname);
 
-  // Public pages: top navbar
+  // Public pages: no navbar (home and login have their own branding)
   if (isPublic || !user) {
-    return (
-      <>
-        <Navbar />
-        <main className="min-h-[calc(100vh-4rem)]">{children}</main>
-      </>
-    );
+    return <>{children}</>;
   }
 
   // Authenticated pages: sidebar layout

@@ -14,7 +14,8 @@ import {
 import {
   ArrowLeft, Download, BookOpen, CheckCircle2, XCircle,
   ThumbsUp, ThumbsDown, AlertTriangle, Calendar, Clock,
-  ShieldCheck, Bell
+  ShieldCheck, Bell, FileText, Pill, Stethoscope, Heart,
+  Printer, Share2, Mail
 } from "lucide-react";
 import { toast } from "sonner";
 import type { VisitRecord, LiteratureResult, ClinicalTrial, AuthUser } from "@/types";
@@ -117,11 +118,33 @@ export default function VisitDetailPage() {
     try {
       const blob = await exportPDF(visitId);
       downloadPDF(blob, `visit-${visitId}-summary.pdf`);
-      toast.success("PDF downloaded");
+      toast.success("PDF downloaded successfully!");
     } catch {
-      toast.error("PDF export failed");
+      toast.error("PDF export failed. Please try again.");
     } finally {
       setExportLoading(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Visit Summary - ${visit?.visit_type}`,
+          text: `My visit summary from ${new Date(visit?.visit_date || "").toLocaleDateString()}`,
+          url: window.location.href,
+        });
+      } catch {
+        // User cancelled or share failed
+      }
+    } else {
+      // Fallback: copy link to clipboard
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied to clipboard!");
     }
   };
 
@@ -136,13 +159,22 @@ export default function VisitDetailPage() {
   if (!visit) return null;
 
   const riskStyle = RISK_COLOR[visit.risk_assessment?.risk_level ?? "low"];
-  const tabs = [
-    { key: "patient", label: "Patient Summary" },
-    { key: "soap", label: "SOAP Note" },
-    { key: "risk", label: "Risk Assessment" },
-    { key: "research", label: "Research" },
-    { key: "transcript", label: "Transcript" },
+  
+  // Define tabs - patients see fewer tabs than clinicians
+  const clinicianTabs = [
+    { key: "patient", label: "Patient Summary", icon: FileText },
+    { key: "soap", label: "SOAP Note", icon: Stethoscope },
+    { key: "risk", label: "Risk Assessment", icon: AlertTriangle },
+    { key: "research", label: "Research", icon: BookOpen },
+    { key: "transcript", label: "Transcript", icon: FileText },
   ] as const;
+  
+  const patientTabs = [
+    { key: "patient", label: "My Summary", icon: FileText },
+    { key: "risk", label: "Health Insights", icon: Heart },
+  ] as const;
+  
+  const tabs = isClinician ? clinicianTabs : patientTabs;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
@@ -177,18 +209,31 @@ export default function VisitDetailPage() {
             </div>
           </div>
         </div>
+        
+        {/* Action buttons */}
         <div className="flex items-center gap-2 flex-wrap">
           {visit.risk_assessment && (
             <div className={`px-3 py-1.5 rounded-xl border text-sm font-bold ${riskStyle}`}>
               Risk {visit.risk_assessment.risk_score}/100 · {visit.risk_assessment.risk_level.toUpperCase()}
             </div>
           )}
-          {/* Patient: prominent Save PDF button */}
-          {!isClinician && (
-            <Button onClick={handleExport} disabled={exportLoading} className="gap-2 bg-primary text-white">
-              <Download className="h-4 w-4" />{exportLoading ? "Generating…" : "Save My Summary (PDF)"}
-            </Button>
+          
+          {/* Patient: prominent download actions when approved */}
+          {!isClinician && isApproved && !isPending && (
+            <div className="flex gap-2">
+              <Button onClick={handleExport} disabled={exportLoading} className="gap-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white shadow-lg">
+                <Download className="h-4 w-4" />
+                {exportLoading ? "Generating…" : "Download PDF"}
+              </Button>
+              <Button variant="outline" size="icon" onClick={handlePrint} title="Print">
+                <Printer className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleShare} title="Share">
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
           )}
+          
           {/* Clinician: PDF + Research buttons */}
           {isClinician && (
             <>
@@ -226,8 +271,34 @@ export default function VisitDetailPage() {
           <div>
             <p className="font-semibold text-blue-800">Summary under review</p>
             <p className="text-sm text-blue-700 mt-0.5">
-              Your clinician is reviewing this visit summary. It will be fully available once approved.
+              Your clinician is reviewing this visit summary. You&apos;ll be able to download it once approved.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Patient: Approved and ready - prominent download CTA */}
+      {!isClinician && isApproved && !isPending && (
+        <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-cyan-50 to-emerald-50 border border-cyan-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-cyan-500 to-emerald-500 flex items-center justify-center">
+                <CheckCircle2 className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="font-bold text-gray-900">Your Visit Summary is Ready!</p>
+                <p className="text-sm text-gray-600">Reviewed and approved by your clinician</p>
+              </div>
+            </div>
+            <Button 
+              onClick={handleExport} 
+              disabled={exportLoading} 
+              size="lg"
+              className="gap-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white shadow-lg w-full sm:w-auto"
+            >
+              <Download className="h-5 w-5" />
+              {exportLoading ? "Generating PDF…" : "Download My Summary (PDF)"}
+            </Button>
           </div>
         </div>
       )}
@@ -238,10 +309,11 @@ export default function VisitDetailPage() {
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px shrink-0 transition-colors ${
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px shrink-0 transition-colors flex items-center gap-2 ${
               activeTab === t.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
+            <t.icon className="h-4 w-4" />
             {t.label}
           </button>
         ))}
@@ -258,7 +330,11 @@ export default function VisitDetailPage() {
           {/* Medications with feedback */}
           {(visit.patient_summary.medications?.length ?? 0) > 0 && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">💊 Medications</CardTitle></CardHeader>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Pill className="h-4 w-4 text-blue-500" /> Medications
+                </CardTitle>
+              </CardHeader>
               <CardContent className="divide-y">
                 {visit.patient_summary.medications?.map((med, i) => {
                   const key = `med-${i}`;
@@ -266,8 +342,9 @@ export default function VisitDetailPage() {
                     <div key={i} className="py-3 flex items-start justify-between gap-3">
                       <div className="text-sm flex-1">
                         <p className="font-semibold">{med.name} <span className="font-normal text-muted-foreground">· {med.dose} · {med.frequency}</span></p>
+                        {med.duration && <p className="text-xs text-muted-foreground">Duration: {med.duration}</p>}
                         {med.instructions && <p className="text-muted-foreground text-xs mt-0.5">{med.instructions}</p>}
-                        {med.evidence && <p className="text-xs text-blue-600 italic mt-1">"{med.evidence}"</p>}
+                        {med.evidence && isClinician && <p className="text-xs text-blue-600 italic mt-1">&quot;{med.evidence}&quot;</p>}
                       </div>
                       {isClinician && (
                         <div className="flex gap-1 shrink-0">
@@ -316,7 +393,22 @@ export default function VisitDetailPage() {
             </Card>
           )}
 
-          {/* Follow-up checklist */}
+          {/* Lifestyle recommendations */}
+          {(visit.patient_summary.lifestyle_recommendations?.length ?? 0) > 0 && (
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">🌿 Lifestyle Recommendations</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                {visit.patient_summary.lifestyle_recommendations?.map((lr, i) => (
+                  <div key={i} className="border rounded-lg p-3 text-sm">
+                    <p className="font-semibold">{lr.recommendation}</p>
+                    {lr.details && <p className="text-muted-foreground text-xs mt-1">{lr.details}</p>}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Follow-up Plan */}
           {(visit.patient_summary.follow_up_plan?.length ?? 0) > 0 && (
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">📅 Follow-up Plan</CardTitle></CardHeader>
@@ -361,21 +453,36 @@ export default function VisitDetailPage() {
             </Card>
           )}
 
-          {/* Patient PDF save button at bottom */}
-          {!isClinician && (
-            <div className="pt-2">
-              <Button onClick={handleExport} disabled={exportLoading} size="lg" className="w-full gap-2 bg-primary text-white">
-                <Download className="h-5 w-5" />
-                {exportLoading ? "Generating PDF…" : "Download My Visit Summary (PDF)"}
-              </Button>
-              <p className="text-xs text-center text-muted-foreground mt-2">Save a copy of your visit summary for your records.</p>
-            </div>
+          {/* Patient: Download section at bottom */}
+          {!isClinician && isApproved && !isPending && (
+            <Card className="border-2 border-dashed border-cyan-200 bg-gradient-to-r from-cyan-50/50 to-emerald-50/50">
+              <CardContent className="py-6">
+                <div className="text-center">
+                  <h3 className="font-bold text-lg mb-2">Save Your Visit Summary</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Keep a copy of your visit summary for your personal health records.</p>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <Button onClick={handleExport} disabled={exportLoading} size="lg" className="gap-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500">
+                      <Download className="h-5 w-5" />
+                      {exportLoading ? "Generating…" : "Download PDF"}
+                    </Button>
+                    <Button variant="outline" onClick={handlePrint} className="gap-2">
+                      <Printer className="h-4 w-4" />
+                      Print
+                    </Button>
+                    <Button variant="outline" onClick={handleShare} className="gap-2">
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
 
-      {/* ── SOAP Note ─────────────────────────────────────────── */}
-      {activeTab === "soap" && visit.clinician_note && (
+      {/* ── SOAP Note (Clinician only) ─────────────────────────────────────────── */}
+      {activeTab === "soap" && visit.clinician_note && isClinician && (
         <div className="space-y-4">
           {(["subjective", "objective", "assessment", "plan"] as const).map(section => {
             const data = visit.clinician_note!.soap_note[section];
@@ -425,7 +532,7 @@ export default function VisitDetailPage() {
                   )}
                   {data.evidence && data.evidence.length > 0 && (
                     <div className="text-xs text-blue-600 italic border-t pt-2 space-y-0.5">
-                      {data.evidence.slice(0, 3).map((e, i) => <p key={i}>"{e}"</p>)}
+                      {data.evidence.slice(0, 3).map((e, i) => <p key={i}>&quot;{e}&quot;</p>)}
                     </div>
                   )}
                 </CardContent>
@@ -473,7 +580,7 @@ export default function VisitDetailPage() {
                   <div key={i} className="border border-red-200 rounded-lg p-3 bg-red-50">
                     <p className="text-sm font-semibold text-red-700">{rf.flag}</p>
                     <p className="text-xs text-muted-foreground mt-1">{rf.recommended_action}</p>
-                    {rf.evidence && <p className="text-xs text-blue-600 italic mt-1">"{rf.evidence}"</p>}
+                    {rf.evidence && <p className="text-xs text-blue-600 italic mt-1">&quot;{rf.evidence}&quot;</p>}
                   </div>
                 ))}
               </CardContent>
@@ -491,11 +598,24 @@ export default function VisitDetailPage() {
               ))}
             </CardContent>
           </Card>
+
+          {/* Patient: helpful context about risk score */}
+          {!isClinician && (
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="py-4">
+                <p className="text-sm text-blue-800">
+                  <strong>What does this mean?</strong> This score helps your healthcare team prioritize follow-up care. 
+                  It&apos;s based on information discussed during your visit and is not a diagnosis. 
+                  If you have concerns, please contact your healthcare provider.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
-      {/* ── Research ─────────────────────────────────────────── */}
-      {activeTab === "research" && (
+      {/* ── Research (Clinician only) ─────────────────────────────────────────── */}
+      {activeTab === "research" && isClinician && (
         <div className="grid md:grid-cols-2 gap-6">
           <div>
             <h2 className="font-semibold text-sm mb-3">📚 Published Research</h2>
@@ -512,16 +632,14 @@ export default function VisitDetailPage() {
                       </p>
                       <p className="text-xs text-muted-foreground">{p.authors.slice(0,2).join(", ")} · {p.year} · {p.journal}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{p.citation_count} citations</p>
-                      {isClinician && (
-                        <div className="flex gap-1 mt-2">
-                          <button onClick={() => sendFeedback(key, "paper", p.title, "relevant", "literature_relevance", p.url)}
-                            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors ${feedback[key] === "relevant" ? "bg-green-100 border-green-400 text-green-700" : "text-muted-foreground hover:bg-green-50"}`}>
-                            <ThumbsUp className="h-3 w-3" /> Relevant</button>
-                          <button onClick={() => sendFeedback(key, "paper", p.title, "not_relevant", "literature_relevance", p.url)}
-                            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors ${feedback[key] === "not_relevant" ? "bg-red-100 border-red-400 text-red-700" : "text-muted-foreground hover:bg-red-50"}`}>
-                            <ThumbsDown className="h-3 w-3" /> Not relevant</button>
-                        </div>
-                      )}
+                      <div className="flex gap-1 mt-2">
+                        <button onClick={() => sendFeedback(key, "paper", p.title, "relevant", "literature_relevance", p.url)}
+                          className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors ${feedback[key] === "relevant" ? "bg-green-100 border-green-400 text-green-700" : "text-muted-foreground hover:bg-green-50"}`}>
+                          <ThumbsUp className="h-3 w-3" /> Relevant</button>
+                        <button onClick={() => sendFeedback(key, "paper", p.title, "not_relevant", "literature_relevance", p.url)}
+                          className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors ${feedback[key] === "not_relevant" ? "bg-red-100 border-red-400 text-red-700" : "text-muted-foreground hover:bg-red-50"}`}>
+                          <ThumbsDown className="h-3 w-3" /> Not relevant</button>
+                      </div>
                     </Card>
                   );
                 })}
@@ -550,8 +668,8 @@ export default function VisitDetailPage() {
         </div>
       )}
 
-      {/* ── Transcript ───────────────────────────────────────── */}
-      {activeTab === "transcript" && (
+      {/* ── Transcript (Clinician only) ───────────────────────────────────────── */}
+      {activeTab === "transcript" && isClinician && (
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground max-h-[60vh] overflow-y-auto">
