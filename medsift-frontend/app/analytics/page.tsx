@@ -5,13 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAnalytics, getFeedbackAnalytics } from "@/lib/api";
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
 } from "recharts";
 import { toast } from "sonner";
 import type { AnalyticsSummary, FeedbackAnalytics } from "@/types";
 
-const RISK_COLORS = { low: "#16a34a", medium: "#d97706", high: "#dc2626" };
 const CHART_COLORS = ["#1565c0", "#0d9488", "#0288d1", "#00c853", "#7b1fa2", "#e65100"];
 
 function StatCard({ label, value, sub, color = "text-primary" }: { label: string; value: string | number; sub?: string; color?: string }) {
@@ -67,12 +66,6 @@ export default function AnalyticsPage() {
     </div>
   );
 
-  const riskData = [
-    { name: "Low", value: analytics.risk_distribution.low, fill: RISK_COLORS.low },
-    { name: "Medium", value: analytics.risk_distribution.medium, fill: RISK_COLORS.medium },
-    { name: "High", value: analytics.risk_distribution.high, fill: RISK_COLORS.high },
-  ];
-
   const accuracyByType = feedbackAnalytics
     ? Object.entries(feedbackAnalytics.accuracy_by_item_type).map(([type, rate]) => ({
         type: type.replace("_", " "),
@@ -88,13 +81,8 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <StatCard label="Total Visits" value={analytics.total_visits} />
-        <StatCard
-          label="Avg Risk Score"
-          value={analytics.avg_risk_score?.toFixed(0) ?? "—"}
-          color={analytics.avg_risk_score > 60 ? "text-red-600" : analytics.avg_risk_score > 30 ? "text-amber-600" : "text-green-600"}
-        />
         {feedbackAnalytics && (
           <>
             <StatCard
@@ -113,22 +101,6 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Risk Distribution Donut */}
-        <Card>
-          <CardHeader><CardTitle className="text-sm">Risk Level Distribution</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie data={riskData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
-                  {riskData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
         {/* Top Conditions */}
         {analytics.top_conditions?.length > 0 && (
           <Card>

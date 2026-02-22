@@ -12,12 +12,6 @@ import { Search, Calendar, Clock, Trash2, ArrowRight, Plus } from "lucide-react"
 import { toast } from "sonner";
 import type { VisitRecord, AuthUser } from "@/types";
 
-const RISK_STYLES: Record<string, string> = {
-  low:    "bg-green-100 text-green-700 border-green-200",
-  medium: "bg-amber-100 text-amber-700 border-amber-200",
-  high:   "bg-red-100   text-red-700   border-red-200",
-};
-
 export default function VisitsPage() {
   const [visits, setVisits] = useState<VisitRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,11 +133,6 @@ export default function VisitsPage() {
                         {new Date(visit.visit_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </div>
                     </div>
-                    {visit.risk_assessment && (
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${RISK_STYLES[visit.risk_assessment.risk_level] ?? ""}`}>
-                        {visit.risk_assessment.risk_level.toUpperCase()}
-                      </span>
-                    )}
                   </div>
 
                   {/* Summary snippet */}

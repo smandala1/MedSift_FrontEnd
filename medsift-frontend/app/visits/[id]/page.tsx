@@ -13,18 +13,12 @@ import {
 } from "@/lib/api";
 import {
   ArrowLeft, Download, BookOpen, CheckCircle2, XCircle,
-  ThumbsUp, ThumbsDown, AlertTriangle, Calendar, Clock,
-  ShieldCheck, Bell, FileText, Pill, Stethoscope, Heart,
+  ThumbsUp, ThumbsDown, Calendar, Clock,
+  ShieldCheck, Bell, FileText, Pill, Stethoscope,
   Printer, Share2, Mail
 } from "lucide-react";
 import { toast } from "sonner";
 import type { VisitRecord, LiteratureResult, ClinicalTrial, AuthUser } from "@/types";
-
-const RISK_COLOR: Record<string, string> = {
-  low: "text-green-600 bg-green-50 border-green-200",
-  medium: "text-amber-600 bg-amber-50 border-amber-200",
-  high: "text-red-600 bg-red-50 border-red-200",
-};
 
 function EmptyField({ label }: { label: string }) {
   return (
@@ -45,7 +39,7 @@ export default function VisitDetailPage() {
   const [literature, setLiterature] = useState<LiteratureResult[]>([]);
   const [trials, setTrials] = useState<ClinicalTrial[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"patient" | "soap" | "risk" | "research" | "transcript">("patient");
+  const [activeTab, setActiveTab] = useState<"patient" | "soap" | "research" | "transcript">("patient");
   const [feedback, setFeedback] = useState<Record<string, "correct" | "incorrect" | "relevant" | "not_relevant">>({});
   const [exportLoading, setExportLoading] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -158,20 +152,16 @@ export default function VisitDetailPage() {
 
   if (!visit) return null;
 
-  const riskStyle = RISK_COLOR[visit.risk_assessment?.risk_level ?? "low"];
-  
   // Define tabs - patients see fewer tabs than clinicians
   const clinicianTabs = [
     { key: "patient", label: "Patient Summary", icon: FileText },
     { key: "soap", label: "SOAP Note", icon: Stethoscope },
-    { key: "risk", label: "Risk Assessment", icon: AlertTriangle },
     { key: "research", label: "Research", icon: BookOpen },
     { key: "transcript", label: "Transcript", icon: FileText },
   ] as const;
   
   const patientTabs = [
     { key: "patient", label: "My Summary", icon: FileText },
-    { key: "risk", label: "Health Insights", icon: Heart },
   ] as const;
   
   const tabs = isClinician ? clinicianTabs : patientTabs;
@@ -212,12 +202,6 @@ export default function VisitDetailPage() {
         
         {/* Action buttons */}
         <div className="flex items-center gap-2 flex-wrap">
-          {visit.risk_assessment && (
-            <div className={`px-3 py-1.5 rounded-xl border text-sm font-bold ${riskStyle}`}>
-              Risk {visit.risk_assessment.risk_score}/100 · {visit.risk_assessment.risk_level.toUpperCase()}
-            </div>
-          )}
-          
           {/* Patient: prominent download actions when approved */}
           {!isClinician && isApproved && !isPending && (
             <div className="flex gap-2">
@@ -488,27 +472,8 @@ export default function VisitDetailPage() {
             const data = visit.clinician_note!.soap_note[section];
 
             // Define expected fields per section
-            const sectionFields: { label: string; val: string | undefined | null }[] = {
-              subjective: [
-                { label: "CC", val: data.chief_complaint },
-                { label: "HPI", val: data.history_of_present_illness },
-                { label: "ROS", val: data.review_of_systems },
-              ],
-              objective: [
-                { label: "Vitals", val: data.vitals },
-                { label: "PE", val: data.physical_exam_findings },
-              ],
-              assessment: [
-                { label: "Diagnoses", val: data.diagnoses?.join(", ") },
-                { label: "Impression", val: data.clinical_impression },
-              ],
-              plan: [
-                { label: "Follow-up", val: data.follow_up },
-                { label: "Education", val: data.patient_education },
-              ],
-            }[section];
-
-            const hasAnyContent = sectionFields.some(f => f.val && f.val.trim() !== "");
+            const findings = data.findings ?? [];
+            const hasAnyContent = findings.length > 0;
 
             return (
               <Card key={section} className={!hasAnyContent ? "border-red-200 bg-red-50/30" : ""}>
@@ -523,12 +488,12 @@ export default function VisitDetailPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-2">
-                  {sectionFields.map(({ label, val }) =>
-                    val ? (
-                      <p key={label}><strong>{label}:</strong> {val}</p>
-                    ) : (
-                      <EmptyField key={label} label={label} />
-                    )
+                  {hasAnyContent ? (
+                    <ul className="list-disc list-inside space-y-1">
+                      {findings.map((f, i) => <li key={i}>{f}</li>)}
+                    </ul>
+                  ) : (
+                    <p className="text-muted-foreground italic">No findings extracted for this section.</p>
                   )}
                   {data.evidence && data.evidence.length > 0 && (
                     <div className="text-xs text-blue-600 italic border-t pt-2 space-y-0.5">
@@ -544,70 +509,6 @@ export default function VisitDetailPage() {
               <CardHeader className="pb-2"><CardTitle className="text-sm">Problem List</CardTitle></CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 {visit.clinician_note.problem_list?.map((p, i) => <Badge key={i} variant="secondary">{p}</Badge>)}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* ── Risk Assessment ───────────────────────────────────── */}
-      {activeTab === "risk" && visit.risk_assessment && (
-        <div className="space-y-4">
-          <Card className={`border ${riskStyle}`}>
-            <CardContent className="pt-6 flex items-center gap-6">
-              <div className="text-center min-w-[80px]">
-                <div className="text-6xl font-black" style={{ color: visit.risk_assessment.risk_level === "high" ? "#dc2626" : visit.risk_assessment.risk_level === "medium" ? "#d97706" : "#16a34a" }}>
-                  {visit.risk_assessment.risk_score}
-                </div>
-                <div className="text-xs text-muted-foreground">/ 100</div>
-              </div>
-              <Separator orientation="vertical" className="h-16" />
-              <div>
-                <p className="text-xl font-bold capitalize" style={{ color: visit.risk_assessment.risk_level === "high" ? "#dc2626" : visit.risk_assessment.risk_level === "medium" ? "#d97706" : "#16a34a" }}>
-                  {visit.risk_assessment.risk_level} Risk
-                </p>
-                <p className="text-sm text-muted-foreground">{visit.risk_assessment.total_factors_detected} factors detected</p>
-                <p className="text-xs text-muted-foreground mt-1">⚠️ Not a medical diagnosis — highlights only what was discussed.</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {(visit.risk_assessment.red_flags?.length ?? 0) > 0 && (
-            <Card className="border-red-200">
-              <CardHeader className="pb-2"><CardTitle className="text-sm text-red-700">🚨 Red Flags</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                {visit.risk_assessment.red_flags?.map((rf, i) => (
-                  <div key={i} className="border border-red-200 rounded-lg p-3 bg-red-50">
-                    <p className="text-sm font-semibold text-red-700">{rf.flag}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{rf.recommended_action}</p>
-                    {rf.evidence && <p className="text-xs text-blue-600 italic mt-1">&quot;{rf.evidence}&quot;</p>}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Risk Factor Breakdown</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
-              {visit.risk_assessment.risk_factors?.map((rf, i) => (
-                <div key={i} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="flex-1">{rf.factor}</span>
-                  <Badge variant="outline" className="shrink-0">+{rf.points} pts</Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Patient: helpful context about risk score */}
-          {!isClinician && (
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="py-4">
-                <p className="text-sm text-blue-800">
-                  <strong>What does this mean?</strong> This score helps your healthcare team prioritize follow-up care. 
-                  It&apos;s based on information discussed during your visit and is not a diagnosis. 
-                  If you have concerns, please contact your healthcare provider.
-                </p>
               </CardContent>
             </Card>
           )}

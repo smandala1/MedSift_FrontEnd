@@ -18,7 +18,7 @@ import { transcribeAudio, analyzeTranscript, exportPDF, downloadPDF } from "@/li
 import { toast } from "sonner";
 import type { TranscribeResponse, AnalyzeResponse, AuthUser } from "@/types";
 
-type Stage = "idle" | "uploading" | "transcribing" | "redacting" | "extracting" | "scoring" | "done" | "error";
+type Stage = "idle" | "uploading" | "transcribing" | "redacting" | "extracting" | "done" | "error";
 type Mode = "file" | "live";
 
 const STAGES: { key: Stage; label: string; icon: React.ElementType; sub: string }[] = [
@@ -26,10 +26,9 @@ const STAGES: { key: Stage; label: string; icon: React.ElementType; sub: string 
   { key: "transcribing", label: "Transcribing (Whisper)", icon: Mic,          sub: "Local speech-to-text" },
   { key: "redacting",    label: "Redacting PHI",          icon: ShieldCheck,  sub: "Presidio anonymization" },
   { key: "extracting",   label: "Extracting care plan",   icon: Brain,        sub: "LLaMA 3 structured extraction" },
-  { key: "scoring",      label: "Scoring risk",           icon: Activity,     sub: "Rule-based + LLM analysis" },
 ];
 
-const STAGE_ORDER: Stage[] = ["uploading", "transcribing", "redacting", "extracting", "scoring", "done"];
+const STAGE_ORDER: Stage[] = ["uploading", "transcribing", "redacting", "extracting", "done"];
 
 function stageIndex(s: Stage) { return STAGE_ORDER.indexOf(s); }
 
@@ -50,7 +49,7 @@ export default function UploadPage() {
   const [tags, setTags] = useState("");
   const [transcribeResult, setTranscribeResult] = useState<TranscribeResponse | null>(null);
   const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<"care-plan" | "soap" | "risk" | "transcript">("care-plan");
+  const [activeTab, setActiveTab] = useState<"care-plan" | "soap" | "transcript">("care-plan");
   const [errorMsg, setErrorMsg] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -138,9 +137,6 @@ export default function UploadPage() {
       });
       setAnalyzeResult(ar);
 
-      setStage("scoring");
-      await new Promise(r => setTimeout(r, 400));
-
       setStage("done");
 
       // Add to pending approvals queue (clinician must approve before patient sees it)
@@ -172,14 +168,6 @@ export default function UploadPage() {
       setExportLoading(false);
     }
   };
-
-  const riskColor = analyzeResult?.risk_assessment.risk_level === "high"
-    ? "text-red-600" : analyzeResult?.risk_assessment.risk_level === "medium"
-    ? "text-amber-600" : "text-green-600";
-
-  const riskBg = analyzeResult?.risk_assessment.risk_level === "high"
-    ? "bg-red-50 border-red-200" : analyzeResult?.risk_assessment.risk_level === "medium"
-    ? "bg-amber-50 border-amber-200" : "bg-green-50 border-green-200";
 
   const fmtTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
@@ -348,7 +336,7 @@ export default function UploadPage() {
                     <li>Audio → Whisper transcribes it</li>
                     <li>PHI is automatically redacted</li>
                     <li>LLM extracts care plan + SOAP note</li>
-                    <li>Risk scoring identifies red flags</li>
+                    <li>LLM extracts structured care plans</li>
                     <li>Clinical trials &amp; literature are searched</li>
                   </ol>
                 </CardContent>
@@ -437,9 +425,6 @@ export default function UploadPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className={`px-4 py-2 rounded-xl border text-sm font-bold ${riskBg} ${riskColor}`}>
-                Risk: {analyzeResult.risk_assessment.risk_score}/100 · {analyzeResult.risk_assessment.risk_level.toUpperCase()}
-              </div>
               <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exportLoading} className="gap-1.5">
                 <Download className="h-4 w-4" /> {exportLoading ? "Generating…" : "PDF"}
               </Button>
@@ -451,7 +436,7 @@ export default function UploadPage() {
 
           {/* Result tabs */}
           <div className="flex gap-2 border-b pb-0">
-            {(["care-plan", "soap", "risk", "transcript"] as const).map(t => (
+            {(["care-plan", "soap", "transcript"] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
@@ -459,7 +444,7 @@ export default function UploadPage() {
                   activeTab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {t === "care-plan" ? "Care Plan" : t === "soap" ? "SOAP Note" : t === "risk" ? "Risk Assessment" : "Transcript"}
+                {t === "care-plan" ? "Care Plan" : t === "soap" ? "SOAP Note" : "Transcript"}
               </button>
             ))}
           </div>
@@ -562,50 +547,6 @@ export default function UploadPage() {
                   </Card>
                 );
               })}
-            </div>
-          )}
-
-          {/* Risk tab */}
-          {activeTab === "risk" && (
-            <div className="space-y-4">
-              <Card className={`border ${riskBg}`}>
-                <CardContent className="pt-6 flex items-center gap-6">
-                  <div className="text-center">
-                    <div className={`text-5xl font-black ${riskColor}`}>{analyzeResult.risk_assessment.risk_score}</div>
-                    <div className="text-xs text-muted-foreground mt-1">/ 100</div>
-                  </div>
-                  <Separator orientation="vertical" className="h-16" />
-                  <div>
-                    <p className={`text-xl font-bold ${riskColor} capitalize`}>{analyzeResult.risk_assessment.risk_level} Risk</p>
-                    <p className="text-sm text-muted-foreground">{analyzeResult.risk_assessment.total_factors_detected} risk factors detected</p>
-                    <p className="text-xs text-muted-foreground mt-2">⚠️ This is not a medical diagnosis.</p>
-                  </div>
-                </CardContent>
-              </Card>
-              {analyzeResult.risk_assessment.red_flags.length > 0 && (
-                <Card className="border-red-200">
-                  <CardHeader className="pb-2"><CardTitle className="text-sm text-red-700">🚨 Red Flags</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    {analyzeResult.risk_assessment.red_flags.map((rf, i) => (
-                      <div key={i} className="border border-red-200 rounded-lg p-3 bg-red-50">
-                        <p className="text-sm font-semibold text-red-700">{rf.flag}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{rf.recommended_action}</p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-              <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Risk Factors</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
-                  {analyzeResult.risk_assessment.risk_factors.map((rf, i) => (
-                    <div key={i} className="flex items-start justify-between gap-2 text-sm">
-                      <span>{rf.factor}</span>
-                      <Badge variant="outline">+{rf.points}</Badge>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
             </div>
           )}
 

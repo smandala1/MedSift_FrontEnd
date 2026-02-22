@@ -16,12 +16,6 @@ import {
 import type { VisitRecord, AnalyticsSummary, AuthUser } from "@/types";
 import { toast } from "sonner";
 
-const RISK_COLOR: Record<string, string> = {
-  low: "text-green-600 bg-green-50 border-green-200",
-  medium: "text-amber-600 bg-amber-50 border-amber-200",
-  high: "text-red-600 bg-red-50 border-red-200",
-};
-
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -66,7 +60,6 @@ export default function DashboardPage() {
     : visits.filter(v => approvedIds.includes(v.id) || !pendingIds.includes(v.id));
 
   const recentVisits = visibleVisits.slice(0, 5);
-  const highRiskCount = visits.filter(v => v.risk_assessment?.risk_level === "high").length;
 
   const approveVisit = (visitId: number) => {
     const newApproved = [...approvedIds, visitId];
@@ -112,7 +105,7 @@ export default function DashboardPage() {
 
       {/* Stats row — different layout for clinician vs patient */}
       {isClinician ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -130,24 +123,11 @@ export default function DashboardPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Avg Risk Score</p>
-                  <p className="text-2xl font-bold mt-1">{loading ? "—" : analytics?.avg_risk_score?.toFixed(0) ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Pending Approvals</p>
+                  <p className="text-2xl font-bold mt-1 text-amber-600">{loading ? "—" : pendingIds.length}</p>
                 </div>
                 <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center">
-                  <Activity className="h-5 w-5 text-amber-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">High Risk</p>
-                  <p className="text-2xl font-bold mt-1 text-red-600">{loading ? "—" : highRiskCount}</p>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center">
-                  <AlertTriangle className="h-5 w-5 text-red-500" />
+                  <Bell className="h-5 w-5 text-amber-600" />
                 </div>
               </div>
             </CardContent>
@@ -300,11 +280,6 @@ export default function DashboardPage() {
                             </p>
                           </div>
                         </div>
-                        {visit.risk_assessment && (
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${RISK_COLOR[visit.risk_assessment.risk_level]}`}>
-                            {visit.risk_assessment.risk_level.toUpperCase()}
-                          </span>
-                        )}
                       </div>
 
                       {summary && (
@@ -353,36 +328,6 @@ export default function DashboardPage() {
         <div className="space-y-4">
           {analytics && (
             <>
-              {/* Risk distribution */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground">Risk Distribution</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2.5">
-                  {(["low", "medium", "high"] as const).map(level => {
-                    const count = analytics.risk_distribution[level] ?? 0;
-                    const pct = analytics.total_visits > 0 ? (count / analytics.total_visits) * 100 : 0;
-                    return (
-                      <div key={level}>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="capitalize text-muted-foreground">{level}</span>
-                          <span className="font-medium">{count}</span>
-                        </div>
-                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${pct}%`,
-                              background: level === "high" ? "#dc2626" : level === "medium" ? "#d97706" : "#16a34a"
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-
               {/* Top conditions */}
               {analytics.top_conditions && analytics.top_conditions.length > 0 && isClinician && (
                 <Card>
