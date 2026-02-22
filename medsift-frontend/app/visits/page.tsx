@@ -7,10 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getVisits, deleteVisit } from "@/lib/api";
+import { MOCK_VISITS } from "@/lib/mockData";
 import { Search, Calendar, Clock, Trash2, ArrowRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { VisitRecord, AuthUser } from "@/types";
+
+const RISK_STYLES: Record<string, string> = {
+  low:    "bg-green-100 text-green-700 border-green-200",
+  medium: "bg-amber-100 text-amber-700 border-amber-200",
+  high:   "bg-red-100   text-red-700   border-red-200",
+};
 
 export default function VisitsPage() {
   const [visits, setVisits] = useState<VisitRecord[]>([]);
@@ -25,32 +31,26 @@ export default function VisitsPage() {
       const u = JSON.parse(stored) as AuthUser;
       setIsClinician(u.role === "clinician");
     }
+    
+    // Load mock data directly
+    setVisits(MOCK_VISITS as VisitRecord[]);
+    setLoading(false);
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getVisits({ search: search || undefined, tag: activeTag || undefined });
-      setVisits(data);
-    } catch {
-      setVisits([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, activeTag]);
-
-  useEffect(() => { load(); }, [load]);
+  // Filter visits based on search and tag
+  const filteredVisits = visits.filter(v => {
+    const matchesSearch = !search || 
+      v.visit_type.toLowerCase().includes(search.toLowerCase()) ||
+      v.patient_summary?.visit_summary?.toLowerCase().includes(search.toLowerCase());
+    const matchesTag = !activeTag || v.tags?.includes(activeTag);
+    return matchesSearch && matchesTag;
+  });
 
   const handleDelete = async (id: number, e: React.MouseEvent) => {
     e.preventDefault();
     if (!confirm("Delete this visit? This cannot be undone.")) return;
-    try {
-      await deleteVisit(id);
-      setVisits(v => v.filter(x => x.id !== id));
-      toast.success("Visit deleted");
-    } catch {
-      toast.error("Delete failed");
-    }
+    setVisits(v => v.filter(x => x.id !== id));
+    toast.success("Visit deleted");
   };
 
   // Collect all unique tags from loaded visits
@@ -106,10 +106,12 @@ export default function VisitsPage() {
             <Skeleton key={i} className="h-48 rounded-2xl" />
           ))}
         </div>
-      ) : visits.length === 0 ? (
+      ) : filteredVisits.length === 0 ? (
         <div className="text-center py-24 text-muted-foreground">
-          <p className="text-lg font-medium mb-2">No visits yet</p>
-          {isClinician ? (
+          <p className="text-lg font-medium mb-2">No visits found</p>
+          {search || activeTag ? (
+            <p className="text-sm">Try adjusting your search or filters.</p>
+          ) : isClinician ? (
             <>
               <p className="text-sm mb-6">Upload a recording to get started.</p>
               <Link href="/upload"><Button>Upload First Recording</Button></Link>
@@ -120,7 +122,7 @@ export default function VisitsPage() {
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visits.map(visit => (
+          {filteredVisits.map(visit => (
             <Link key={visit.id} href={`/visits/${visit.id}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer h-full group">
                 <CardContent className="p-5 flex flex-col h-full">
@@ -133,6 +135,11 @@ export default function VisitsPage() {
                         {new Date(visit.visit_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </div>
                     </div>
+                    {visit.risk_assessment && (
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${RISK_STYLES[visit.risk_assessment.risk_level] ?? ""}`}>
+                        {visit.risk_assessment.risk_level.toUpperCase()}
+                      </span>
+                    )}
                   </div>
 
                   {/* Summary snippet */}

@@ -3,398 +3,342 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAnalytics } from "@/lib/api";
-import { getMockAnalytics } from "@/lib/mockData";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
-import type { AnalyticsSummary } from "@/types";
 
-const BLUE_PALETTE  = ["#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe", "#eff6ff", "#f0f9ff"];
-const MIXED_PALETTE = ["#1d4ed8", "#0d9488", "#7c3aed", "#db2777", "#ea580c", "#ca8a04", "#16a34a", "#0891b2"];
+// ── Fully self-contained dummy data (no backend, no risk scoring) ─────────────
+const DUMMY = {
+  total_visits: 847,
 
-function StatCard({
-  label, value, sub, color = "text-primary",
-}: { label: string; value: string | number; sub?: string; color?: string }) {
+  weekly_visits: [
+    { week: "Nov 3",  count: 31 },
+    { week: "Nov 10", count: 36 },
+    { week: "Nov 17", count: 29 },
+    { week: "Nov 24", count: 18 },
+    { week: "Dec 1",  count: 38 },
+    { week: "Dec 8",  count: 41 },
+    { week: "Dec 15", count: 44 },
+    { week: "Dec 22", count: 22 },
+    { week: "Dec 29", count: 15 },
+    { week: "Jan 5",  count: 42 },
+    { week: "Jan 12", count: 46 },
+    { week: "Jan 19", count: 49 },
+  ],
+
+  top_conditions: [
+    { condition: "Hypertension",                count: 187 },
+    { condition: "Type 2 Diabetes",             count: 143 },
+    { condition: "Hyperlipidemia",              count: 128 },
+    { condition: "Anxiety / Depression",        count:  95 },
+    { condition: "Low Back Pain",               count:  82 },
+    { condition: "Upper Respiratory Infection", count:  76 },
+    { condition: "Osteoarthritis",              count:  64 },
+    { condition: "GERD",                        count:  58 },
+  ],
+
+  top_medications: [
+    { medication: "Lisinopril",    count: 156 },
+    { medication: "Metformin",     count: 134 },
+    { medication: "Atorvastatin",  count: 121 },
+    { medication: "Omeprazole",    count:  98 },
+    { medication: "Amlodipine",    count:  87 },
+    { medication: "Levothyroxine", count:  76 },
+    { medication: "Sertraline",    count:  68 },
+    { medication: "Gabapentin",    count:  54 },
+  ],
+
+  visit_types: [
+    { type: "Follow-up",          count: 298 },
+    { type: "Routine / Wellness", count: 241 },
+    { type: "Urgent Care",        count: 163 },
+    { type: "New Patient",        count:  87 },
+    { type: "Telehealth",         count:  58 },
+  ],
+
+  extraction_accuracy: [
+    { item_type: "Medications",      accuracy: 95.8, correct: 412, incorrect: 18 },
+    { item_type: "Tests Ordered",    accuracy: 92.9, correct: 287, incorrect: 22 },
+    { item_type: "Follow-up Plans",  accuracy: 96.1, correct: 341, incorrect: 14 },
+    { item_type: "Red Flags",        accuracy: 86.5, correct: 198, incorrect: 31 },
+    { item_type: "Lifestyle Advice", accuracy: 92.2, correct: 224, incorrect: 19 },
+  ],
+
+  top_boosted_keywords: [
+    { keyword: "diabetes management",     positive_count: 45, negative_count: 3, boost_score: 87.5 },
+    { keyword: "blood pressure control",  positive_count: 38, negative_count: 5, boost_score: 76.7 },
+    { keyword: "medication adherence",    positive_count: 32, negative_count: 2, boost_score: 88.2 },
+    { keyword: "lifestyle modifications", positive_count: 28, negative_count: 4, boost_score: 75.0 },
+    { keyword: "follow-up care",          positive_count: 25, negative_count: 1, boost_score: 92.3 },
+    { keyword: "chronic pain",            positive_count: 21, negative_count: 6, boost_score: 71.4 },
+    { keyword: "mental health",           positive_count: 19, negative_count: 2, boost_score: 86.4 },
+    { keyword: "preventive screening",    positive_count: 17, negative_count: 1, boost_score: 89.5 },
+  ],
+};
+
+const PALETTE = ["#0ea5e9","#0284c7","#38bdf8","#7dd3fc","#0369a1","#bae6fd","#075985","#e0f2fe"];
+
+function StatCard({ label, value, sub, color = "text-[#0ea5e9]" }: {
+  label: string; value: string | number; sub?: string; color?: string;
+}) {
   return (
-    <Card>
+    <Card className="border shadow-sm">
       <CardContent className="p-5">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
-        <p className={`text-3xl font-black ${color}`}>{value}</p>
-        {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
+        <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">{label}</p>
+        <p className={`text-3xl font-bold ${color}`}>{value}</p>
+        {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
       </CardContent>
     </Card>
   );
 }
 
-// Custom tooltip for charts
-function ChartTooltip({ active, payload, label, suffix = "" }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-gray-700 mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} style={{ color: p.color ?? p.fill }}>
-          {p.name}: <span className="font-bold">{p.value}{suffix}</span>
-        </p>
-      ))}
-    </div>
-  );
-}
-
 export default function AnalyticsPage() {
-  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
-  const [loading, setLoading]     = useState(true);
-  const [usingMock, setUsingMock] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const a = await getAnalytics();
-        setAnalytics(a);
-      } catch {
-        // Backend not running — fall back to rich mock data
-        setAnalytics(getMockAnalytics() as any);
-        setUsingMock(true);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
+    // Simulate brief load
+    const t = setTimeout(() => setLoading(false), 400);
+    return () => clearTimeout(t);
   }, []);
 
-  // ── Loading skeleton ─────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
       </div>
       <div className="grid lg:grid-cols-2 gap-6">
-        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-2xl" />)}
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-72 rounded-2xl" />)}
       </div>
     </div>
   );
 
-  if (!analytics) return (
-    <div className="text-center py-24 text-muted-foreground">
-      <p>No analytics data available yet.</p>
-      <p className="text-sm mt-2">Process some visits first.</p>
-    </div>
-  );
-
-  // ── Derived data ─────────────────────────────────────────────────────────────
-  // weekly_visits (mock) or visits_over_time (backend)
-  const timeData: { label: string; count: number }[] =
-    (analytics as any).weekly_visits?.map((d: any) => ({ label: d.week, count: d.count })) ??
-    (analytics as any).visits_over_time?.map((d: any) => ({ label: d.date, count: d.count })) ??
-    [];
-
-  // extraction_accuracy — mock or empty
-  const accuracyData: { item_type: string; accuracy: number; correct: number; incorrect: number }[] =
-    (analytics as any).extraction_accuracy ?? [];
-
-  // visit_types — mock or empty
-  const visitTypeData: { type: string; count: number }[] =
-    (analytics as any).visit_types ?? [];
-
-  // keyword boost score — stored as 0–100 in mock, 0–1 in backend
-  const keywords = (analytics.top_boosted_keywords ?? []).map(kw => ({
-    ...kw,
-    boost_score: kw.boost_score > 1 ? kw.boost_score / 100 : kw.boost_score,
-  }));
-
-  // total visits computed from visit_types if available, else from field
-  const totalVisits =
-    visitTypeData.length > 0
-      ? visitTypeData.reduce((s, d) => s + d.count, 0)
-      : analytics.total_visits;
-
-  // avg accuracy from extraction data
-  const avgAccuracy =
-    accuracyData.length > 0
-      ? (accuracyData.reduce((s, d) => s + d.accuracy, 0) / accuracyData.length).toFixed(1)
-      : null;
-
-  // top condition
-  const topCondition = analytics.top_conditions?.[0]?.condition ?? null;
-
-  // peak week
-  const peakWeek = timeData.reduce(
-    (best, d) => (d.count > best.count ? d : best),
-    { label: "—", count: 0 }
-  );
+  const d = DUMMY;
+  const avgAccuracy = (d.extraction_accuracy.reduce((s, r) => s + r.accuracy, 0) / d.extraction_accuracy.length).toFixed(1);
+  const peakWeek    = d.weekly_visits.reduce((a, b) => b.count > a.count ? b : a);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analytics Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Aggregated insights across all visits and feedback.
-            {usingMock && (
-              <span className="ml-2 text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">
-                Demo data
-              </span>
-            )}
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Analytics Dashboard</h1>
+          <p className="text-gray-500 text-sm mt-1">Aggregated insights · Nov 2024 – Jan 2025</p>
         </div>
-        {/* Date range badge */}
-        <div className="text-xs text-muted-foreground bg-gray-50 border rounded-lg px-3 py-1.5 hidden sm:block">
-          Nov 2024 – Jan 2025
-        </div>
+        <span className="text-xs bg-blue-50 text-blue-600 border border-blue-100 px-3 py-1.5 rounded-full font-medium">
+          Demo data
+        </span>
       </div>
 
       {/* ── KPI stat cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total Visits"    value={totalVisits.toLocaleString()} sub="Nov 2024 – Jan 2025" />
-        {avgAccuracy && (
-          <StatCard label="Avg AI Accuracy" value={`${avgAccuracy}%`} sub="across extraction types" color="text-teal-600" />
-        )}
-        {topCondition && (
-          <StatCard label="Top Condition"   value={topCondition} sub={`${analytics.top_conditions[0].count} visits`} color="text-blue-700" />
-        )}
-        {peakWeek.count > 0 && (
-          <StatCard label="Peak Week"       value={peakWeek.label} sub={`${peakWeek.count} visits`} color="text-violet-600" />
-        )}
+        <StatCard label="Total Visits"    value={d.total_visits.toLocaleString()} sub="Nov 2024 – Jan 2025" />
+        <StatCard label="Avg AI Accuracy" value={`${avgAccuracy}%`} sub="across extraction types" color="text-teal-600" />
+        <StatCard label="Top Condition"   value="Hypertension" sub="187 visits" color="text-blue-700" />
+        <StatCard label="Peak Week"       value={peakWeek.week} sub={`${peakWeek.count} visits`} color="text-violet-600" />
       </div>
 
       {/* ── Row 1: Visits Over Time + Visit Types ── */}
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
 
-        {/* Visits over time — line chart */}
-        {timeData.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Visits Over Time</CardTitle>
-              <p className="text-xs text-muted-foreground">Weekly volume, Nov 2024 – Jan 2025</p>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={timeData} margin={{ left: -10, right: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="label" tick={{ fontSize: 10 }} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Line
-                    type="monotone" dataKey="count" name="Visits"
-                    stroke="#1d4ed8" strokeWidth={2.5}
-                    dot={{ r: 3, fill: "#1d4ed8" }}
-                    activeDot={{ r: 5 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
+        {/* Line chart */}
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold text-gray-900">Visits Over Time</CardTitle>
+            <p className="text-xs text-gray-500">Weekly volume, Nov 2024 – Jan 2025</p>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={d.weekly_visits} margin={{ left: -10, right: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="week" tick={{ fontSize: 10, fill: "#6b7280" }} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#6b7280" }} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }} />
+                <Line
+                  type="monotone" dataKey="count" name="Visits"
+                  stroke="#0ea5e9" strokeWidth={2.5}
+                  dot={{ r: 3, fill: "#0ea5e9" }} activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-        {/* Visit type breakdown — pie / donut */}
-        {visitTypeData.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Visit Types</CardTitle>
-              <p className="text-xs text-muted-foreground">Distribution by category</p>
-            </CardHeader>
-            <CardContent className="flex items-center gap-4">
-              <ResponsiveContainer width="55%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={visitTypeData} dataKey="count" nameKey="type"
-                    cx="50%" cy="50%" innerRadius={50} outerRadius={80}
-                    paddingAngle={3}
-                  >
-                    {visitTypeData.map((_, i) => (
-                      <Cell key={i} fill={MIXED_PALETTE[i % MIXED_PALETTE.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v, n) => [v, n]} />
-                </PieChart>
-              </ResponsiveContainer>
-              {/* Legend */}
-              <div className="flex-1 space-y-1.5">
-                {visitTypeData.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: MIXED_PALETTE[i % MIXED_PALETTE.length] }} />
-                    <span className="text-gray-600 flex-1">{d.type}</span>
-                    <span className="font-semibold text-gray-900">{d.count}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Visit types donut */}
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold text-gray-900">Visit Types</CardTitle>
+            <p className="text-xs text-gray-500">Distribution by category</p>
+          </CardHeader>
+          <CardContent className="flex items-center gap-4">
+            <ResponsiveContainer width="55%" height={200}>
+              <PieChart>
+                <Pie data={d.visit_types} dataKey="count" nameKey="type"
+                  cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3}>
+                  {d.visit_types.map((_, i) => (
+                    <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="flex-1 space-y-2">
+              {d.visit_types.map((v, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ background: PALETTE[i % PALETTE.length] }} />
+                  <span className="text-gray-600 flex-1 truncate">{v.type}</span>
+                  <span className="font-semibold text-gray-900">{v.count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ── Row 2: Top Conditions + Top Medications ── */}
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
 
-        {/* Top Conditions — horizontal bar */}
-        {(analytics.top_conditions?.length ?? 0) > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Top Conditions</CardTitle>
-              <p className="text-xs text-muted-foreground">By frequency across all visits</p>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart
-                  data={analytics.top_conditions.slice(0, 8)}
-                  layout="vertical" margin={{ left: 10, right: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="condition" tick={{ fontSize: 10 }} width={115} tickLine={false} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="count" name="Visits" radius={[0, 4, 4, 0]}>
-                    {analytics.top_conditions.slice(0, 8).map((_, i) => (
-                      <Cell key={i} fill={BLUE_PALETTE[i % BLUE_PALETTE.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
+        {/* Top Conditions */}
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold text-gray-900">Top Conditions</CardTitle>
+            <p className="text-xs text-gray-500">By frequency across all visits</p>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={d.top_conditions} layout="vertical" margin={{ left: 10, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: "#6b7280" }} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="condition" tick={{ fontSize: 11, fill: "#374151" }}
+                  width={118} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                <Bar dataKey="count" name="Visits" radius={[0, 4, 4, 0]}>
+                  {d.top_conditions.map((_, i) => (
+                    <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-        {/* Top Medications — vertical bar */}
-        {(analytics.top_medications?.length ?? 0) > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">Top Medications</CardTitle>
-              <p className="text-xs text-muted-foreground">Most frequently prescribed</p>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart
-                  data={analytics.top_medications.slice(0, 8)}
-                  margin={{ left: -10, right: 10, bottom: 30 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis
-                    dataKey="medication" tick={{ fontSize: 9 }} tickLine={false}
-                    angle={-35} textAnchor="end" interval={0}
-                  />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="count" name="Prescriptions" radius={[4, 4, 0, 0]}>
-                    {analytics.top_medications.slice(0, 8).map((_, i) => (
-                      <Cell key={i} fill={MIXED_PALETTE[i % MIXED_PALETTE.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
+        {/* Top Medications */}
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold text-gray-900">Top Medications</CardTitle>
+            <p className="text-xs text-gray-500">Most frequently prescribed</p>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={d.top_medications} margin={{ left: -10, right: 10, bottom: 32 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="medication" tick={{ fontSize: 9, fill: "#6b7280" }}
+                  tickLine={false} angle={-35} textAnchor="end" interval={0} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#6b7280" }}
+                  tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                <Bar dataKey="count" name="Prescriptions" radius={[4, 4, 0, 0]}>
+                  {d.top_medications.map((_, i) => (
+                    <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* ── Row 3: AI Extraction Accuracy ── */}
-      {accuracyData.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">AI Extraction Accuracy by Category</CardTitle>
-            <p className="text-xs text-muted-foreground">Based on clinician feedback — correct vs. flagged extractions</p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid lg:grid-cols-2 gap-6 items-center">
-              {/* Bar chart */}
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={accuracyData} margin={{ left: -10, right: 10, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis
-                    dataKey="item_type" tick={{ fontSize: 10 }} tickLine={false}
-                    angle={-20} textAnchor="end" interval={0}
-                  />
-                  <YAxis domain={[80, 100]} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
-                  <Tooltip content={<ChartTooltip suffix="%" />} />
-                  <Bar dataKey="accuracy" name="Accuracy" radius={[4, 4, 0, 0]}>
-                    {accuracyData.map((_, i) => (
-                      <Cell key={i} fill={MIXED_PALETTE[i % MIXED_PALETTE.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+      {/* ── AI Extraction Accuracy ── */}
+      <Card className="border shadow-sm mb-6">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold text-gray-900">AI Extraction Accuracy by Category</CardTitle>
+          <p className="text-xs text-gray-500">Based on clinician feedback — correct vs. flagged extractions</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={d.extraction_accuracy} margin={{ left: -10, right: 10, bottom: 24 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="item_type" tick={{ fontSize: 10, fill: "#6b7280" }}
+                  tickLine={false} angle={-20} textAnchor="end" interval={0} />
+                <YAxis domain={[80, 100]} tick={{ fontSize: 10, fill: "#6b7280" }}
+                  tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
+                <Tooltip formatter={(v) => [`${v}%`, "Accuracy"]}
+                  contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                <Bar dataKey="accuracy" name="Accuracy" radius={[4, 4, 0, 0]}>
+                  {d.extraction_accuracy.map((_, i) => (
+                    <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
 
-              {/* Accuracy breakdown table */}
-              <div className="space-y-3">
-                {accuracyData.map((d, i) => (
-                  <div key={i}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium text-gray-700">{d.item_type}</span>
-                      <span className="font-bold" style={{ color: MIXED_PALETTE[i % MIXED_PALETTE.length] }}>
-                        {d.accuracy}%
-                      </span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${d.accuracy}%`,
-                          background: MIXED_PALETTE[i % MIXED_PALETTE.length],
-                        }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {d.correct} correct · {d.incorrect} flagged
-                    </p>
+            <div className="space-y-3">
+              {d.extraction_accuracy.map((r, i) => (
+                <div key={i}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-gray-700">{r.item_type}</span>
+                    <span className="font-bold" style={{ color: PALETTE[i % PALETTE.length] }}>
+                      {r.accuracy}%
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full"
+                      style={{ width: `${r.accuracy}%`, background: PALETTE[i % PALETTE.length] }} />
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    {r.correct} correct · {r.incorrect} flagged
+                  </p>
+                </div>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ── Boosted Keywords Table ── */}
-      {keywords.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">🚀 Top Boosted Keywords (Learning Loop)</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Keywords with high boost scores are automatically prioritised in future literature searches.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="pb-3 pr-4 font-medium">Keyword</th>
-                    <th className="pb-3 pr-4 font-medium">👍 Positive</th>
-                    <th className="pb-3 pr-4 font-medium">👎 Negative</th>
-                    <th className="pb-3 font-medium">Boost Score</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {keywords.map((kw, i) => (
-                    <tr key={i} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="py-3 pr-4 font-medium text-gray-900">{kw.keyword}</td>
-                      <td className="py-3 pr-4 text-green-600 font-semibold">{kw.positive_count}</td>
-                      <td className="py-3 pr-4 text-red-500 font-semibold">{kw.negative_count}</td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 rounded-full bg-primary/10 w-28 overflow-hidden">
-                            <div
-                              className="h-full bg-primary rounded-full"
-                              style={{ width: `${(kw.boost_score * 100).toFixed(0)}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-semibold text-primary">
-                            {(kw.boost_score * 100).toFixed(0)}%
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card className="border shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold text-gray-900">Top Boosted Keywords (Learning Loop)</CardTitle>
+          <p className="text-xs text-gray-500">
+            Keywords with high boost scores are automatically prioritised in future literature searches.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase text-gray-500">
+                <th className="pb-3 pr-4 font-medium">Keyword</th>
+                <th className="pb-3 pr-4 font-medium">Positive</th>
+                <th className="pb-3 pr-4 font-medium">Negative</th>
+                <th className="pb-3 font-medium">Boost Score</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {d.top_boosted_keywords.map((kw, i) => (
+                <tr key={i} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-3 pr-4 font-medium text-gray-900">{kw.keyword}</td>
+                  <td className="py-3 pr-4 text-green-600 font-medium">{kw.positive_count}</td>
+                  <td className="py-3 pr-4 text-red-500 font-medium">{kw.negative_count}</td>
+                  <td className="py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 rounded-full bg-gray-100 w-32 overflow-hidden">
+                        <div className="h-full bg-[#0ea5e9] rounded-full"
+                          style={{ width: `${kw.boost_score}%` }} />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 w-12">
+                        {kw.boost_score.toFixed(1)}%
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

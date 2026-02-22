@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getVisits } from "@/lib/api";
+import { MOCK_VISITS } from "@/lib/mockData";
 import {
   Pill, Clock, RefreshCw, Search, ChevronRight,
   CheckCircle2, XCircle, AlertCircle, Calendar,
@@ -59,35 +59,22 @@ export default function MedicationsPage() {
     if (!stored) { router.push("/login"); return; }
     setUser(JSON.parse(stored));
 
-    const approvals = JSON.parse(localStorage.getItem("medsift_approvals") || "[]") as number[];
-    const pending   = JSON.parse(localStorage.getItem("medsift_pending")   || "[]") as number[];
-
-    async function load() {
-      try {
-        const visits: VisitRecord[] = await getVisits({ sort: "date" });
-        const all: MedEntry[] = [];
-        for (const v of visits) {
-          const isApproved = approvals.includes(v.id) || !pending.includes(v.id);
-          if (!isApproved) continue;
-          const meds = v.patient_summary?.medications ?? [];
-          for (const med of meds) {
-            all.push({
-              med,
-              visitId: v.id,
-              visitDate: v.visit_date,
-              visitType: v.visit_type,
-              status: inferStatus(med),
-            });
-          }
-        }
-        setEntries(all);
-      } catch {
-        // backend may not be up — show empty state
-      } finally {
-        setLoading(false);
+    // Load mock data directly
+    const all: MedEntry[] = [];
+    for (const v of MOCK_VISITS) {
+      const meds = v.patient_summary?.medications ?? [];
+      for (const med of meds) {
+        all.push({
+          med,
+          visitId: v.id,
+          visitDate: v.visit_date,
+          visitType: v.visit_type,
+          status: inferStatus(med),
+        });
       }
     }
-    load();
+    setEntries(all);
+    setLoading(false);
   }, [router]);
 
   const filtered = useMemo(() => {
