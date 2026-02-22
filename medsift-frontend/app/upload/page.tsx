@@ -148,7 +148,7 @@ export default function UploadPage() {
   const [tags, setTags] = useState("");
   const [transcribeResult, setTranscribeResult] = useState<TranscribeResponse | null>(null);
   const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<"care-plan" | "soap" | "risk" | "transcript">("care-plan");
+  const [activeTab, setActiveTab] = useState<"care-plan" | "soap" | "grounding" | "transcript">("care-plan");
   const [errorMsg, setErrorMsg] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -328,13 +328,13 @@ export default function UploadPage() {
     }
   };
 
-  const riskColor = analyzeResult?.risk_assessment?.risk_level === "high"
-    ? "text-red-600" : analyzeResult?.risk_assessment?.risk_level === "medium"
-    ? "text-amber-600" : "text-green-600";
+  const riskColor = (analyzeResult?.grounding?.overall_score ?? 0) >= 75
+    ? "text-green-600" : (analyzeResult?.grounding?.overall_score ?? 0) >= 50
+    ? "text-amber-600" : "text-red-600";
 
-  const riskBg = analyzeResult?.risk_assessment?.risk_level === "high"
-    ? "bg-red-50 border-red-200" : analyzeResult?.risk_assessment?.risk_level === "medium"
-    ? "bg-amber-50 border-amber-200" : "bg-green-50 border-green-200";
+  const riskBg = (analyzeResult?.grounding?.overall_score ?? 0) >= 75
+    ? "bg-green-50 border-green-200" : (analyzeResult?.grounding?.overall_score ?? 0) >= 50
+    ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200";
 
   const fmtTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
@@ -779,7 +779,7 @@ export default function UploadPage() {
             </div>
             <div className="flex items-center gap-3">
               <div className={`px-4 py-2 rounded-xl border text-sm font-bold ${riskBg} ${riskColor}`}>
-                Risk: {analyzeResult.risk_assessment.risk_score}/100 · {analyzeResult.risk_assessment.risk_level.toUpperCase()}
+                Grounding: {analyzeResult?.grounding?.overall_score ?? 0}/100 · {analyzeResult?.grounding?.overall_flag?.toUpperCase() ?? "N/A"}
               </div>
               <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exportLoading} className="gap-1.5">
                 <Download className="h-4 w-4" /> {exportLoading ? "Generating…" : "PDF"}
@@ -792,7 +792,7 @@ export default function UploadPage() {
 
           {/* Result tabs */}
           <div className="flex gap-2 border-b pb-0">
-            {(["care-plan", "soap", "risk", "transcript"] as const).map(t => (
+            {(["care-plan", "soap", "grounding", "transcript"] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
@@ -800,7 +800,7 @@ export default function UploadPage() {
                   activeTab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {t === "care-plan" ? "Care Plan" : t === "soap" ? "SOAP Note" : t === "risk" ? "Risk Assessment" : "Transcript"}
+                {t === "care-plan" ? "Care Plan" : t === "soap" ? "SOAP Note" : t === "grounding" ? "Grounding Score" : "Transcript"}
               </button>
             ))}
           </div>
@@ -907,42 +907,48 @@ export default function UploadPage() {
           )}
 
           {/* Risk tab */}
-          {activeTab === "risk" && (
+          {activeTab === "grounding" && (
             <div className="space-y-4">
               <Card className={`border ${riskBg}`}>
                 <CardContent className="pt-6 flex items-center gap-6">
                   <div className="text-center">
-                    <div className={`text-5xl font-black ${riskColor}`}>{analyzeResult.risk_assessment.risk_score}</div>
+                    <div className={`text-5xl font-black ${riskColor}`}>{analyzeResult?.grounding?.overall_score ?? 0}</div>
                     <div className="text-xs text-muted-foreground mt-1">/ 100</div>
                   </div>
                   <Separator orientation="vertical" className="h-16" />
                   <div>
-                    <p className={`text-xl font-bold ${riskColor} capitalize`}>{analyzeResult.risk_assessment.risk_level} Risk</p>
-                    <p className="text-sm text-muted-foreground">{analyzeResult.risk_assessment.total_factors_detected} risk factors detected</p>
-                    <p className="text-xs text-muted-foreground mt-2">⚠️ This is not a medical diagnosis.</p>
+                    <p className={`text-xl font-bold ${riskColor} capitalize`}>{analyzeResult?.grounding?.overall_flag ?? "N/A"}</p>
+                    <p className="text-sm text-muted-foreground">{analyzeResult?.grounding?.grounded_count ?? 0} of {analyzeResult?.grounding?.total_items ?? 0} items verified against transcript</p>
+                    <p className="text-xs text-muted-foreground mt-2">Higher scores indicate the LLM extraction is well-supported by the transcript.</p>
                   </div>
                 </CardContent>
               </Card>
-              {analyzeResult.risk_assessment.red_flags.length > 0 && (
-                <Card className="border-red-200">
-                  <CardHeader className="pb-2"><CardTitle className="text-sm text-red-700">🚨 Red Flags</CardTitle></CardHeader>
+              {(analyzeResult?.grounding?.flagged_count ?? 0) > 0 && (
+                <Card className="border-amber-200">
+                  <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-700">⚠️ Items Needing Review</CardTitle></CardHeader>
                   <CardContent className="space-y-3">
-                    {analyzeResult.risk_assessment.red_flags.map((rf, i) => (
-                      <div key={i} className="border border-red-200 rounded-lg p-3 bg-red-50">
-                        <p className="text-sm font-semibold text-red-700">{rf.flag}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{rf.recommended_action}</p>
+                    {analyzeResult?.grounding?.items?.filter((i: any) => i.flag === "uncertain" || i.flag === "likely_hallucinated").map((item: any, i: number) => (
+                      <div key={i} className={`border rounded-lg p-3 ${item.flag === "likely_hallucinated" ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+                        <div className="flex justify-between items-center">
+                          <p className={`text-sm font-semibold ${item.flag === "likely_hallucinated" ? "text-red-700" : "text-amber-700"}`}>{item.item}</p>
+                          <span className="text-xs font-bold">{item.score}/100</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{item.category.replace(/_/g, " ")} · {item.flag.replace(/_/g, " ")}</p>
                       </div>
                     ))}
                   </CardContent>
                 </Card>
               )}
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Risk Factors</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Verified Items</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
-                  {analyzeResult.risk_assessment.risk_factors.map((rf, i) => (
-                    <div key={i} className="flex items-start justify-between gap-2 text-sm">
-                      <span>{rf.factor}</span>
-                      <Badge variant="outline">+{rf.points}</Badge>
+                  {analyzeResult?.grounding?.items?.filter((i: any) => i.flag === "grounded" || i.flag === "likely_grounded").map((item: any, i: number) => (
+                    <div key={i} className="flex justify-between items-center py-1.5 border-b last:border-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-green-500 text-xs">✓</span>
+                        <span className="text-sm">{item.item.length > 60 ? item.item.slice(0, 60) + "…" : item.item}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{item.score}/100</span>
                     </div>
                   ))}
                 </CardContent>
