@@ -27,16 +27,16 @@ function LoginForm() {
   const [role, setRole] = useState<UserRole>((params.get("role") as UserRole) ?? "clinician");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [remember, setRemember] = useState(false);
+  const [email, setEmail]             = useState("");
+  const [password, setPassword]       = useState("");
+  const [showPass, setShowPass]       = useState(false);
+  const [remember, setRemember]       = useState(false);
 
-  const [name, setName] = useState("");
-  const [dob, setDob] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName]               = useState("");
+  const [dob, setDob]                 = useState("");
+  const [phone, setPhone]             = useState("");
   const [confirmPass, setConfirmPass] = useState("");
-  const [smsConsent, setSmsConsent] = useState(false);
+  const [smsConsent, setSmsConsent]   = useState(false);
 
   const [loading, setLoading] = useState(false);
 
@@ -75,7 +75,10 @@ function LoginForm() {
       if (mode === "signup" && phone) userPayload.phone = phone;
       if (mode === "signup") userPayload.sms_consent = smsConsent;
       localStorage.setItem("medsift_user", JSON.stringify(userPayload));
-      toast.success(mode === "signup" ? `Account created! Welcome, ${resolvedName}!` : `Welcome back, ${resolvedName}!`);
+      toast.success(mode === "signup"
+        ? `Account created! Welcome, ${resolvedName}!`
+        : `Welcome back, ${resolvedName}!`
+      );
       router.push("/dashboard");
     }, 800);
   };
@@ -84,16 +87,17 @@ function LoginForm() {
     toast.info("Google sign-in is not available in demo mode.");
   };
 
-  const isPatient = role === "patient";
+  const isPatient  = role === "patient";
   const showSignup = isPatient && mode === "signup";
 
   return (
     <div className="min-h-screen flex bg-gray-50">
+
       {/* ── LEFT: Image Panel ── */}
       <div className="hidden lg:flex lg:w-[45%] xl:w-[48%] relative overflow-hidden">
         {/* Background gradient shape */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#e0f4fc] via-[#f0faff] to-white" />
-        
+
         {/* Curved shape */}
         <svg className="absolute top-0 right-0 h-full w-1/2" viewBox="0 0 200 600" preserveAspectRatio="none">
           <path d="M200 0 C100 150, 150 300, 100 450 C50 550, 150 600, 200 600 Z" fill="white" />
@@ -120,20 +124,18 @@ function LoginForm() {
             />
           </Link>
 
-          {/* Center content - Doctor image with floating cards */}
+          {/* Center content — rounded image box with floating cards, same size as original */}
           <div className="flex-1 flex items-center justify-center relative">
-            {/* Doctor image - changes based on role */}
             <div className="relative">
+              {/* ── Only change: local images instead of Unsplash URLs ── */}
               <img
-                src={role === "clinician" 
-                  ? "https://images.unsplash.com/photo-1666214280557-f1b5022eb634?w=500&h=600&fit=crop&crop=face"
-                  : "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=500&h=600&fit=crop"
-                }
+                key={role}
+                src={role === "clinician" ? "/clinician-login.png" : "/patient-login.png"}
                 alt={role === "clinician" ? "Doctor at desk" : "Doctor and patient consultation"}
                 className="w-[280px] xl:w-[320px] h-[350px] xl:h-[400px] object-cover rounded-3xl shadow-2xl"
               />
 
-              {/* Floating card - top right */}
+              {/* Floating card — top right */}
               <div className="absolute -top-4 -right-8 backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl p-3 shadow-lg border border-[#0ea5e9]/30">
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-lg bg-white/80 flex items-center justify-center">
@@ -146,7 +148,7 @@ function LoginForm() {
                 </div>
               </div>
 
-              {/* Floating card - bottom left */}
+              {/* Floating card — bottom left */}
               <div className="absolute -bottom-4 -left-6 backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl p-3 shadow-lg border border-[#0ea5e9]/30">
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-lg bg-white/80 flex items-center justify-center">
@@ -164,8 +166,8 @@ function LoginForm() {
           {/* Bottom text */}
           <div>
             <h2 className="text-2xl xl:text-3xl font-bold text-gray-900 mb-3">
-              {role === "clinician" 
-                ? "Better clinical intelligence, faster." 
+              {role === "clinician"
+                ? "Better clinical intelligence, faster."
                 : "Your health, clearly explained."}
             </h2>
             <p className="text-gray-600 text-sm leading-relaxed max-w-sm">
@@ -177,9 +179,10 @@ function LoginForm() {
         </div>
       </div>
 
-      {/* ── RIGHT: Form Panel ── */}
+      {/* ── RIGHT: Form Panel (unchanged) ── */}
       <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-20 py-12 bg-white">
         <div className="max-w-md mx-auto w-full">
+
           {/* Mobile logo */}
           <div className="lg:hidden mb-8">
             <Link href="/">
@@ -187,7 +190,7 @@ function LoginForm() {
             </Link>
           </div>
 
-          {/* Role Toggle */}
+          {/* Role toggle */}
           <div className="flex p-1 rounded-full bg-gray-100 mb-8">
             {(["clinician", "patient"] as UserRole[]).map((r) => (
               <button
@@ -211,13 +214,13 @@ function LoginForm() {
               {mode === "signup" ? "Create an account" : "Login to start your session"}
             </h1>
             <p className="text-gray-500 text-sm">
-              {mode === "signup" 
+              {mode === "signup"
                 ? "Sign up to access your health records"
                 : "Welcome back! Please enter your details."}
             </p>
           </div>
 
-          {/* Patient: Sign-in / Sign-up toggle */}
+          {/* Patient: sign-in / sign-up toggle */}
           {isPatient && (
             <div className="flex gap-4 mb-6">
               <button
@@ -245,37 +248,37 @@ function LoginForm() {
               <>
                 <div className="space-y-1.5">
                   <Label htmlFor="name" className="text-sm text-gray-600">Full Name</Label>
-                  <Input 
-                    id="name" 
-                    value={name} 
+                  <Input
+                    id="name"
+                    value={name}
                     onChange={e => setName(e.target.value)}
-                    placeholder="Alex Johnson" 
-                    required 
-                    className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white" 
+                    placeholder="Alex Johnson"
+                    required
+                    className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="dob" className="text-sm text-gray-600">Date of Birth</Label>
-                    <Input 
-                      id="dob" 
-                      type="date" 
-                      value={dob} 
+                    <Input
+                      id="dob"
+                      type="date"
+                      value={dob}
                       onChange={e => setDob(e.target.value)}
-                      required 
-                      className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white" 
+                      required
+                      className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="phone" className="text-sm text-gray-600">Phone</Label>
-                    <Input 
-                      id="phone" 
-                      type="tel" 
-                      value={phone} 
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
                       onChange={e => setPhone(e.target.value)}
-                      placeholder="(555) 000-0000" 
-                      className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white" 
+                      placeholder="(555) 000-0000"
+                      className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white"
                     />
                   </div>
                 </div>
@@ -301,14 +304,14 @@ function LoginForm() {
 
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm text-gray-600">Email / Phone</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={email} 
+              <Input
+                id="email"
+                type="email"
+                value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com" 
-                required 
-                className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white" 
+                placeholder="you@example.com"
+                required
+                className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white"
               />
             </div>
 
@@ -316,8 +319,8 @@ function LoginForm() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-sm text-gray-600">Password</Label>
                 {!showSignup && (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => toast.info("Password reset not available in demo.")}
                     className="text-xs text-[#0ea5e9] hover:underline"
                   >
@@ -326,17 +329,17 @@ function LoginForm() {
                 )}
               </div>
               <div className="relative">
-                <Input 
-                  id="password" 
-                  type={showPass ? "text" : "password"} 
+                <Input
+                  id="password"
+                  type={showPass ? "text" : "password"}
                   value={password}
-                  onChange={e => setPassword(e.target.value)} 
+                  onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  required 
-                  className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white pr-12" 
+                  required
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white pr-12"
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowPass(!showPass)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
@@ -348,14 +351,14 @@ function LoginForm() {
             {showSignup && (
               <div className="space-y-1.5">
                 <Label htmlFor="confirmPass" className="text-sm text-gray-600">Confirm Password</Label>
-                <Input 
-                  id="confirmPass" 
-                  type="password" 
+                <Input
+                  id="confirmPass"
+                  type="password"
                   value={confirmPass}
-                  onChange={e => setConfirmPass(e.target.value)} 
+                  onChange={e => setConfirmPass(e.target.value)}
                   placeholder="••••••••"
-                  required 
-                  className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white" 
+                  required
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white"
                 />
               </div>
             )}
@@ -373,17 +376,17 @@ function LoginForm() {
               </button>
             )}
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full h-12 rounded-xl bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-medium"
               disabled={loading}
             >
               {loading ? "Please wait…" : (showSignup ? "Create Account" : "Login")}
             </Button>
 
-            <Button 
+            <Button
               type="button"
-              variant="outline" 
+              variant="outline"
               onClick={handleGoogle}
               className="w-full h-12 rounded-xl border-gray-200 hover:bg-gray-50 font-medium"
             >

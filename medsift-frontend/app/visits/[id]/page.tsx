@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import {
   getVisit, submitFeedback, exportPDF, downloadPDF, getLiterature, getTrials
 } from "@/lib/api";
@@ -15,26 +14,16 @@ import {
   ArrowLeft, Download, BookOpen, CheckCircle2, XCircle,
   ThumbsUp, ThumbsDown, AlertTriangle, Calendar, Clock,
   ShieldCheck, Bell, FileText, Pill, Stethoscope,
-  Printer, Share2, Mail
+  Printer, Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { VisitRecord, LiteratureResult, ClinicalTrial, AuthUser } from "@/types";
-
-function EmptyField({ label }: { label: string }) {
-  return (
-    <p>
-      <strong>{label}:</strong>{" "}
-      <span className="text-red-500 italic font-medium border border-red-200 bg-red-50 rounded px-1.5 py-0.5 text-xs">
-        Not provided
-      </span>
-    </p>
-  );
-}
 
 export default function VisitDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const visitId = Number(id);
+
   const [visit, setVisit] = useState<VisitRecord | null>(null);
   const [literature, setLiterature] = useState<LiteratureResult[]>([]);
   const [trials, setTrials] = useState<ClinicalTrial[]>([]);
@@ -50,11 +39,9 @@ export default function VisitDetailPage() {
     const stored = localStorage.getItem("medsift_user");
     if (stored) setUser(JSON.parse(stored));
 
-    // Load approval status
     const pending = JSON.parse(localStorage.getItem("medsift_pending") || "[]") as number[];
     const approved = JSON.parse(localStorage.getItem("medsift_approvals") || "[]") as number[];
     setIsPending(pending.includes(visitId));
-    // Treat old visits (not in pending and not in approved) as approved by default
     setIsApproved(approved.includes(visitId) || !pending.includes(visitId));
 
     async function load() {
@@ -100,7 +87,14 @@ export default function VisitDetailPage() {
   ) => {
     setFeedback(f => ({ ...f, [key]: rating as never }));
     try {
-      await submitFeedback({ visit_id: visitId, feedback_type: feedbackType, item_type: itemType, item_value: itemValue, rating: rating as never, paper_url: paperUrl });
+      await submitFeedback({
+        visit_id: visitId,
+        feedback_type: feedbackType,
+        item_type: itemType,
+        item_value: itemValue,
+        rating: rating as never,
+        paper_url: paperUrl,
+      });
       toast.success("Feedback recorded");
     } catch {
       toast.error("Feedback failed");
@@ -120,28 +114,26 @@ export default function VisitDetailPage() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   const handleShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Visit Summary - ${visit?.visit_type}`,
+          title: `Visit Summary — ${visit?.visit_type}`,
           text: `My visit summary from ${new Date(visit?.visit_date || "").toLocaleDateString()}`,
           url: window.location.href,
         });
       } catch {
-        // User cancelled or share failed
+        // user cancelled
       }
     } else {
-      // Fallback: copy link to clipboard
       await navigator.clipboard.writeText(window.location.href);
       toast.success("Link copied to clipboard!");
     }
   };
 
+  // ── Loading skeleton ─────────────────────────────────────────
   if (loading) return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-4">
       <Skeleton className="h-10 w-48" />
@@ -152,23 +144,24 @@ export default function VisitDetailPage() {
 
   if (!visit) return null;
 
-  // Define tabs - patients see fewer tabs than clinicians
+  // ── Tabs (no Risk Assessment tab) ───────────────────────────
   const clinicianTabs = [
-    { key: "patient", label: "Patient Summary", icon: FileText },
-    { key: "soap", label: "SOAP Note", icon: Stethoscope },
-    { key: "research", label: "Research", icon: BookOpen },
-    { key: "transcript", label: "Transcript", icon: FileText },
+    { key: "patient",    label: "Patient Summary", icon: FileText    },
+    { key: "soap",       label: "SOAP Note",        icon: Stethoscope },
+    { key: "research",   label: "Research",          icon: BookOpen    },
+    { key: "transcript", label: "Transcript",        icon: FileText    },
   ] as const;
-  
+
   const patientTabs = [
     { key: "patient", label: "My Summary", icon: FileText },
   ] as const;
-  
+
   const tabs = isClinician ? clinicianTabs : patientTabs;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-      {/* Header */}
+
+      {/* ── Header ───────────────────────────────────────────── */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div className="flex items-start gap-3">
           <Link href="/visits">
@@ -187,11 +180,17 @@ export default function VisitDetailPage() {
               )}
             </div>
             <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-              <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />
-                {new Date(visit.visit_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                {new Date(visit.visit_date).toLocaleDateString("en-US", {
+                  month: "long", day: "numeric", year: "numeric",
+                })}
               </span>
               {visit.audio_duration_seconds && (
-                <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{(visit.audio_duration_seconds/60).toFixed(1)} min</span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  {(visit.audio_duration_seconds / 60).toFixed(1)} min
+                </span>
               )}
             </div>
             <div className="flex gap-1 mt-2 flex-wrap">
@@ -199,13 +198,16 @@ export default function VisitDetailPage() {
             </div>
           </div>
         </div>
-        
+
         {/* Action buttons */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Patient: prominent download actions when approved */}
           {!isClinician && isApproved && !isPending && (
             <div className="flex gap-2">
-              <Button onClick={handleExport} disabled={exportLoading} className="gap-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white shadow-lg">
+              <Button
+                onClick={handleExport}
+                disabled={exportLoading}
+                className="gap-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white shadow-lg"
+              >
                 <Download className="h-4 w-4" />
                 {exportLoading ? "Generating…" : "Download PDF"}
               </Button>
@@ -217,22 +219,22 @@ export default function VisitDetailPage() {
               </Button>
             </div>
           )}
-          
-          {/* Clinician: PDF + Research buttons */}
           {isClinician && (
             <>
               <Button variant="outline" size="sm" onClick={handleExport} disabled={exportLoading} className="gap-1.5">
                 <Download className="h-4 w-4" />{exportLoading ? "…" : "PDF"}
               </Button>
               <Link href={`/literature/${visitId}`}>
-                <Button size="sm" className="gap-1.5"><BookOpen className="h-4 w-4" /> Research</Button>
+                <Button size="sm" className="gap-1.5">
+                  <BookOpen className="h-4 w-4" /> Research
+                </Button>
               </Link>
             </>
           )}
         </div>
       </div>
 
-      {/* Clinician approval banner */}
+      {/* ── Clinician approval banner ─────────────────────────── */}
       {isClinician && isPending && (
         <div className="mb-6 flex items-start gap-3 p-4 rounded-2xl border bg-amber-50 border-amber-300">
           <Bell className="h-5 w-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
@@ -248,7 +250,7 @@ export default function VisitDetailPage() {
         </div>
       )}
 
-      {/* Patient: not yet approved notice */}
+      {/* ── Patient: pending notice ───────────────────────────── */}
       {!isClinician && isPending && (
         <div className="mb-6 flex items-start gap-3 p-4 rounded-2xl border bg-blue-50 border-blue-200">
           <ShieldCheck className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
@@ -261,7 +263,7 @@ export default function VisitDetailPage() {
         </div>
       )}
 
-      {/* Patient: Approved and ready - prominent download CTA */}
+      {/* ── Patient: approved download banner ────────────────── */}
       {!isClinician && isApproved && !isPending && (
         <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-cyan-50 to-emerald-50 border border-cyan-200">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -274,9 +276,9 @@ export default function VisitDetailPage() {
                 <p className="text-sm text-gray-600">Reviewed and approved by your clinician</p>
               </div>
             </div>
-            <Button 
-              onClick={handleExport} 
-              disabled={exportLoading} 
+            <Button
+              onClick={handleExport}
+              disabled={exportLoading}
               size="lg"
               className="gap-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white shadow-lg w-full sm:w-auto"
             >
@@ -287,14 +289,16 @@ export default function VisitDetailPage() {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* ── Tabs ─────────────────────────────────────────────── */}
       <div className="flex gap-0 border-b mb-6 overflow-x-auto">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px shrink-0 transition-colors flex items-center gap-2 ${
-              activeTab === t.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              activeTab === t.key
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <t.icon className="h-4 w-4" />
@@ -303,15 +307,20 @@ export default function VisitDetailPage() {
         ))}
       </div>
 
-      {/* ── Patient Summary ───────────────────────────────────── */}
+      {/* ── Patient Summary tab ───────────────────────────────── */}
       {activeTab === "patient" && visit.patient_summary && (
         <div className="space-y-4">
+          {/* Visit summary */}
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">Visit Summary</CardTitle></CardHeader>
-            <CardContent><p className="text-sm leading-relaxed">{visit.patient_summary.visit_summary}</p></CardContent>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">Visit Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-relaxed">{visit.patient_summary.visit_summary}</p>
+            </CardContent>
           </Card>
 
-          {/* Medications with feedback */}
+          {/* Medications */}
           {(visit.patient_summary.medications?.length ?? 0) > 0 && (
             <Card>
               <CardHeader className="pb-2">
@@ -325,19 +334,32 @@ export default function VisitDetailPage() {
                   return (
                     <div key={i} className="py-3 flex items-start justify-between gap-3">
                       <div className="text-sm flex-1">
-                        <p className="font-semibold">{med.name} <span className="font-normal text-muted-foreground">· {med.dose} · {med.frequency}</span></p>
+                        <p className="font-semibold">
+                          {med.name}{" "}
+                          <span className="font-normal text-muted-foreground">· {med.dose} · {med.frequency}</span>
+                        </p>
                         {med.duration && <p className="text-xs text-muted-foreground">Duration: {med.duration}</p>}
                         {med.instructions && <p className="text-muted-foreground text-xs mt-0.5">{med.instructions}</p>}
-                        {med.evidence && isClinician && <p className="text-xs text-blue-600 italic mt-1">&quot;{med.evidence}&quot;</p>}
+                        {med.evidence && isClinician && (
+                          <p className="text-xs text-blue-600 italic mt-1">&quot;{med.evidence}&quot;</p>
+                        )}
                       </div>
                       {isClinician && (
                         <div className="flex gap-1 shrink-0">
-                          <button onClick={() => sendFeedback(key, "medication", `${med.name} ${med.dose}`, "correct", "extraction_accuracy")}
+                          <button
+                            onClick={() => sendFeedback(key, "medication", `${med.name} ${med.dose}`, "correct", "extraction_accuracy")}
                             className={`p-1.5 rounded-lg border transition-colors ${feedback[key] === "correct" ? "bg-green-100 border-green-400 text-green-600" : "hover:bg-green-50 text-muted-foreground"}`}
-                            title="Mark as correct"><CheckCircle2 className="h-4 w-4" /></button>
-                          <button onClick={() => sendFeedback(key, "medication", `${med.name} ${med.dose}`, "incorrect", "extraction_accuracy")}
+                            title="Mark as correct"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => sendFeedback(key, "medication", `${med.name} ${med.dose}`, "incorrect", "extraction_accuracy")}
                             className={`p-1.5 rounded-lg border transition-colors ${feedback[key] === "incorrect" ? "bg-red-100 border-red-400 text-red-600" : "hover:bg-red-50 text-muted-foreground"}`}
-                            title="Mark as incorrect"><XCircle className="h-4 w-4" /></button>
+                            title="Mark as incorrect"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
                         </div>
                       )}
                     </div>
@@ -347,7 +369,7 @@ export default function VisitDetailPage() {
             </Card>
           )}
 
-          {/* Tests */}
+          {/* Tests ordered */}
           {(visit.patient_summary.tests_ordered?.length ?? 0) > 0 && (
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">🔬 Tests Ordered</CardTitle></CardHeader>
@@ -362,12 +384,18 @@ export default function VisitDetailPage() {
                       </div>
                       {isClinician && (
                         <div className="flex gap-1">
-                          <button onClick={() => sendFeedback(key, "test_ordered", t.test_name, "correct", "extraction_accuracy")}
-                            className={`p-1.5 rounded-lg border ${feedback[key] === "correct" ? "bg-green-100 border-green-400 text-green-600" : "text-muted-foreground hover:bg-green-50"}`}>
-                            <CheckCircle2 className="h-4 w-4" /></button>
-                          <button onClick={() => sendFeedback(key, "test_ordered", t.test_name, "incorrect", "extraction_accuracy")}
-                            className={`p-1.5 rounded-lg border ${feedback[key] === "incorrect" ? "bg-red-100 border-red-400 text-red-600" : "text-muted-foreground hover:bg-red-50"}`}>
-                            <XCircle className="h-4 w-4" /></button>
+                          <button
+                            onClick={() => sendFeedback(key, "test_ordered", t.test_name, "correct", "extraction_accuracy")}
+                            className={`p-1.5 rounded-lg border ${feedback[key] === "correct" ? "bg-green-100 border-green-400 text-green-600" : "text-muted-foreground hover:bg-green-50"}`}
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => sendFeedback(key, "test_ordered", t.test_name, "incorrect", "extraction_accuracy")}
+                            className={`p-1.5 rounded-lg border ${feedback[key] === "incorrect" ? "bg-red-100 border-red-400 text-red-600" : "text-muted-foreground hover:bg-red-50"}`}
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
                         </div>
                       )}
                     </div>
@@ -392,7 +420,7 @@ export default function VisitDetailPage() {
             </Card>
           )}
 
-          {/* Follow-up Plan */}
+          {/* Follow-up plan */}
           {(visit.patient_summary.follow_up_plan?.length ?? 0) > 0 && (
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">📅 Follow-up Plan</CardTitle></CardHeader>
@@ -402,7 +430,9 @@ export default function VisitDetailPage() {
                     <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
                     <div>
                       <span>{fu.action}</span>
-                      {fu.date_or_timeline && <span className="text-muted-foreground ml-2">· {fu.date_or_timeline}</span>}
+                      {fu.date_or_timeline && (
+                        <span className="text-muted-foreground ml-2">· {fu.date_or_timeline}</span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -413,7 +443,11 @@ export default function VisitDetailPage() {
           {/* Red flags */}
           {(visit.patient_summary.red_flags_for_patient?.length ?? 0) > 0 && (
             <Card className="border-red-200 bg-red-50">
-              <CardHeader className="pb-2"><CardTitle className="text-sm text-red-700 flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> When to Seek Urgent Care</CardTitle></CardHeader>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-red-700 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> When to Seek Urgent Care
+                </CardTitle>
+              </CardHeader>
               <CardContent className="space-y-1.5">
                 {visit.patient_summary.red_flags_for_patient?.map((rf, i) => (
                   <p key={i} className="text-sm text-red-700">• {rf.warning}</p>
@@ -425,7 +459,7 @@ export default function VisitDetailPage() {
           {/* Q&A */}
           {(visit.patient_summary.questions_and_answers?.length ?? 0) > 0 && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">💬 Questions & Answers</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">💬 Questions &amp; Answers</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {visit.patient_summary.questions_and_answers?.map((qa, i) => (
                   <div key={i} className="border rounded-lg p-3 text-sm">
@@ -437,27 +471,30 @@ export default function VisitDetailPage() {
             </Card>
           )}
 
-          {/* Patient: Download section at bottom */}
+          {/* Patient: download section at bottom */}
           {!isClinician && isApproved && !isPending && (
             <Card className="border-2 border-dashed border-cyan-200 bg-gradient-to-r from-cyan-50/50 to-emerald-50/50">
-              <CardContent className="py-6">
-                <div className="text-center">
-                  <h3 className="font-bold text-lg mb-2">Save Your Visit Summary</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Keep a copy of your visit summary for your personal health records.</p>
-                  <div className="flex flex-wrap items-center justify-center gap-3">
-                    <Button onClick={handleExport} disabled={exportLoading} size="lg" className="gap-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500">
-                      <Download className="h-5 w-5" />
-                      {exportLoading ? "Generating…" : "Download PDF"}
-                    </Button>
-                    <Button variant="outline" onClick={handlePrint} className="gap-2">
-                      <Printer className="h-4 w-4" />
-                      Print
-                    </Button>
-                    <Button variant="outline" onClick={handleShare} className="gap-2">
-                      <Share2 className="h-4 w-4" />
-                      Share
-                    </Button>
-                  </div>
+              <CardContent className="py-6 text-center">
+                <h3 className="font-bold text-lg mb-2">Save Your Visit Summary</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Keep a copy of your visit summary for your personal health records.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <Button
+                    onClick={handleExport}
+                    disabled={exportLoading}
+                    size="lg"
+                    className="gap-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500"
+                  >
+                    <Download className="h-5 w-5" />
+                    {exportLoading ? "Generating…" : "Download PDF"}
+                  </Button>
+                  <Button variant="outline" onClick={handlePrint} className="gap-2">
+                    <Printer className="h-4 w-4" /> Print
+                  </Button>
+                  <Button variant="outline" onClick={handleShare} className="gap-2">
+                    <Share2 className="h-4 w-4" /> Share
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -465,21 +502,21 @@ export default function VisitDetailPage() {
         </div>
       )}
 
-      {/* ── SOAP Note (Clinician only) ─────────────────────────────────────────── */}
+      {/* ── SOAP Note tab (clinician only) ────────────────────── */}
       {activeTab === "soap" && visit.clinician_note && isClinician && (
         <div className="space-y-4">
           {(["subjective", "objective", "assessment", "plan"] as const).map(section => {
             const data = visit.clinician_note!.soap_note[section];
-
-            // Define expected fields per section
             const findings = data.findings ?? [];
             const hasAnyContent = findings.length > 0;
-
             return (
               <Card key={section} className={!hasAnyContent ? "border-red-200 bg-red-50/30" : ""}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-                    {section === "subjective" ? "S — Subjective" : section === "objective" ? "O — Objective" : section === "assessment" ? "A — Assessment" : "P — Plan"}
+                    {section === "subjective" ? "S — Subjective"
+                      : section === "objective" ? "O — Objective"
+                      : section === "assessment" ? "A — Assessment"
+                      : "P — Plan"}
                     {!hasAnyContent && (
                       <span className="text-red-500 text-[10px] font-bold normal-case tracking-normal border border-red-300 bg-red-100 rounded px-1.5">
                         No data extracted
@@ -508,20 +545,27 @@ export default function VisitDetailPage() {
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">Problem List</CardTitle></CardHeader>
               <CardContent className="flex flex-wrap gap-2">
-                {visit.clinician_note.problem_list?.map((p, i) => <Badge key={i} variant="secondary">{p}</Badge>)}
+                {visit.clinician_note.problem_list?.map((p, i) => (
+                  <Badge key={i} variant="secondary">{p}</Badge>
+                ))}
               </CardContent>
             </Card>
           )}
         </div>
       )}
 
-      {/* ── Research (Clinician only) ─────────────────────────────────────────── */}
+      {/* ── Research tab (clinician only) ─────────────────────── */}
       {activeTab === "research" && isClinician && (
         <div className="grid md:grid-cols-2 gap-6">
           <div>
             <h2 className="font-semibold text-sm mb-3">📚 Published Research</h2>
             {literature.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No papers found. <Link href={`/literature/${visitId}`} className="text-primary underline">Refresh search →</Link></p>
+              <p className="text-sm text-muted-foreground">
+                No papers found.{" "}
+                <Link href={`/literature/${visitId}`} className="text-primary underline">
+                  Refresh search →
+                </Link>
+              </p>
             ) : (
               <div className="space-y-3">
                 {literature.slice(0, 5).map((p, i) => {
@@ -529,17 +573,27 @@ export default function VisitDetailPage() {
                   return (
                     <Card key={i} className="p-4">
                       <p className="font-semibold text-sm leading-snug mb-1">
-                        <a href={p.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary">{p.title}</a>
+                        <a href={p.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
+                          {p.title}
+                        </a>
                       </p>
-                      <p className="text-xs text-muted-foreground">{p.authors.slice(0,2).join(", ")} · {p.year} · {p.journal}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {p.authors.slice(0, 2).join(", ")} · {p.year} · {p.journal}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-0.5">{p.citation_count} citations</p>
                       <div className="flex gap-1 mt-2">
-                        <button onClick={() => sendFeedback(key, "paper", p.title, "relevant", "literature_relevance", p.url)}
-                          className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors ${feedback[key] === "relevant" ? "bg-green-100 border-green-400 text-green-700" : "text-muted-foreground hover:bg-green-50"}`}>
-                          <ThumbsUp className="h-3 w-3" /> Relevant</button>
-                        <button onClick={() => sendFeedback(key, "paper", p.title, "not_relevant", "literature_relevance", p.url)}
-                          className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors ${feedback[key] === "not_relevant" ? "bg-red-100 border-red-400 text-red-700" : "text-muted-foreground hover:bg-red-50"}`}>
-                          <ThumbsDown className="h-3 w-3" /> Not relevant</button>
+                        <button
+                          onClick={() => sendFeedback(key, "paper", p.title, "relevant", "literature_relevance", p.url)}
+                          className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors ${feedback[key] === "relevant" ? "bg-green-100 border-green-400 text-green-700" : "text-muted-foreground hover:bg-green-50"}`}
+                        >
+                          <ThumbsUp className="h-3 w-3" /> Relevant
+                        </button>
+                        <button
+                          onClick={() => sendFeedback(key, "paper", p.title, "not_relevant", "literature_relevance", p.url)}
+                          className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors ${feedback[key] === "not_relevant" ? "bg-red-100 border-red-400 text-red-700" : "text-muted-foreground hover:bg-red-50"}`}
+                        >
+                          <ThumbsDown className="h-3 w-3" /> Not relevant
+                        </button>
                       </div>
                     </Card>
                   );
@@ -556,10 +610,12 @@ export default function VisitDetailPage() {
                 {trials.map((t, i) => (
                   <Card key={i} className="p-4">
                     <p className="font-semibold text-sm leading-snug mb-1">
-                      <a href={t.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary">{t.brief_title}</a>
+                      <a href={t.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
+                        {t.brief_title}
+                      </a>
                     </p>
                     <Badge className="bg-green-100 text-green-700 border-green-200 text-[10px] mb-2">{t.status}</Badge>
-                    <p className="text-xs text-muted-foreground">{t.conditions?.slice(0,3).join(", ")}</p>
+                    <p className="text-xs text-muted-foreground">{t.conditions?.slice(0, 3).join(", ")}</p>
                     {t.why_it_matches && <p className="text-xs text-blue-600 mt-1">{t.why_it_matches}</p>}
                   </Card>
                 ))}
@@ -569,7 +625,7 @@ export default function VisitDetailPage() {
         </div>
       )}
 
-      {/* ── Transcript (Clinician only) ───────────────────────────────────────── */}
+      {/* ── Transcript tab (clinician only) ───────────────────── */}
       {activeTab === "transcript" && isClinician && (
         <Card>
           <CardContent className="pt-6">
