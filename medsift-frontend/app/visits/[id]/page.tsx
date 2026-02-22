@@ -13,7 +13,7 @@ import {
 } from "@/lib/api";
 import {
   ArrowLeft, Download, BookOpen, CheckCircle2, XCircle,
-  ThumbsUp, ThumbsDown, Calendar, Clock,
+  ThumbsUp, ThumbsDown, AlertTriangle, Calendar, Clock,
   ShieldCheck, Bell, FileText, Pill, Stethoscope,
   Printer, Share2, Mail
 } from "lucide-react";

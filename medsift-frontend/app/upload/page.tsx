@@ -8,10 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import {
   Upload, CheckCircle2, Circle, Loader2, AlertTriangle,
-  FileAudio, Mic, ShieldCheck, Brain, Activity, FileText,
+  FileAudio, Mic, ShieldCheck, Brain, FileText,
   ArrowRight, Download, Eye, Square, Radio, Clock
 } from "lucide-react";
 import { transcribeAudio, analyzeTranscript, exportPDF, downloadPDF } from "@/lib/api";
@@ -501,46 +500,31 @@ export default function UploadPage() {
             <div className="grid md:grid-cols-2 gap-4">
               {(["subjective", "objective", "assessment", "plan"] as const).map((section) => {
                 const data = analyzeResult.clinician_note.soap_note[section];
-                const fields = {
-                  subjective: [
-                    { label: "CC", val: data.chief_complaint },
-                    { label: "HPI", val: data.history_of_present_illness },
-                    { label: "ROS", val: data.review_of_systems },
-                  ],
-                  objective: [
-                    { label: "Vitals", val: data.vitals },
-                    { label: "PE", val: data.physical_exam_findings },
-                  ],
-                  assessment: [
-                    { label: "Diagnoses", val: data.diagnoses?.join(", ") },
-                    { label: "Impression", val: data.clinical_impression },
-                  ],
-                  plan: [
-                    { label: "Follow-up", val: data.follow_up },
-                    { label: "Education", val: data.patient_education },
-                  ],
-                }[section];
+                const findings = data.findings ?? [];
+                const hasContent = findings.length > 0;
                 return (
-                  <Card key={section}>
+                  <Card key={section} className={!hasContent ? "border-red-200 bg-red-50/30" : ""}>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground">
+                      <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
                         {section === "subjective" ? "S — Subjective" : section === "objective" ? "O — Objective" : section === "assessment" ? "A — Assessment" : "P — Plan"}
+                        {!hasContent && (
+                          <span className="text-red-500 text-[10px] font-bold normal-case tracking-normal border border-red-300 bg-red-100 rounded px-1.5">
+                            No data extracted
+                          </span>
+                        )}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm space-y-2">
-                      {fields.map(({ label, val }) => (
-                        <p key={label}>
-                          <strong>{label}:</strong>{" "}
-                          {val ? (
-                            <span>{val}</span>
-                          ) : (
-                            <span className="text-red-500 italic font-medium">Not provided</span>
-                          )}
-                        </p>
-                      ))}
+                      {hasContent ? (
+                        <ul className="list-disc list-inside space-y-1">
+                          {findings.map((f, i) => <li key={i}>{f}</li>)}
+                        </ul>
+                      ) : (
+                        <p className="text-muted-foreground italic">No findings extracted for this section.</p>
+                      )}
                       {data.evidence && data.evidence.length > 0 && (
                         <div className="text-xs text-blue-600 italic space-y-1 border-t pt-2 mt-2">
-                          {data.evidence.slice(0, 2).map((e, i) => <p key={i}>"{e}"</p>)}
+                          {data.evidence.slice(0, 2).map((e, i) => <p key={i}>&quot;{e}&quot;</p>)}
                         </div>
                       )}
                     </CardContent>
@@ -568,7 +552,11 @@ export default function UploadPage() {
                 <CardContent>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap max-h-96 overflow-y-auto">{transcribeResult.redacted_transcript}</p>
                   <div className="mt-3 pt-3 border-t">
-                    <p className="text-xs text-muted-foreground">Redacted: {transcribeResult.redaction_log.length} items</p>
+                    {transcribeResult.redaction_log.length > 0 ? (
+                      <p className="text-xs text-muted-foreground">Redacted: {transcribeResult.redaction_log.length} items</p>
+                    ) : (
+                      <p className="text-xs text-green-600">✓ No PHI detected — transcript is clean</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
