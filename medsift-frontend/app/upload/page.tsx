@@ -7,25 +7,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import {
-  Upload, CheckCircle2, Loader2, AlertTriangle,
+  Upload, CheckCircle2, Circle, Loader2, AlertTriangle,
   FileAudio, Mic, ShieldCheck, Brain, FileText,
-  ArrowRight, Download, Eye, Square, Radio, Clock, Stethoscope
+  ArrowRight, Download, Eye, Square, Radio, Clock
 } from "lucide-react";
 import { transcribeAudio, analyzeTranscript, exportPDF, downloadPDF } from "@/lib/api";
 import { toast } from "sonner";
 import type { TranscribeResponse, AnalyzeResponse, AuthUser } from "@/types";
 
-// ── Removed "scoring" stage — backend does not support risk scoring ──
 type Stage = "idle" | "uploading" | "transcribing" | "redacting" | "extracting" | "done" | "error";
 type Mode = "file" | "live";
 
 const STAGES: { key: Stage; label: string; icon: React.ElementType; sub: string }[] = [
-  { key: "uploading",    label: "Uploading Audio",        icon: Upload,      sub: "Securely transmitting file to backend" },
-  { key: "transcribing", label: "Transcribing Speech",    icon: Mic,         sub: "Whisper AI — local speech-to-text" },
-  { key: "redacting",    label: "De-identifying PHI",     icon: ShieldCheck, sub: "Presidio — removing patient identifiers" },
-  { key: "extracting",   label: "Extracting Care Plan",   icon: Brain,       sub: "LLaMA 3 — structured clinical extraction" },
+  { key: "uploading",    label: "Uploading audio",       icon: Upload,       sub: "Sending file to backend" },
+  { key: "transcribing", label: "Transcribing (Whisper)", icon: Mic,          sub: "Local speech-to-text" },
+  { key: "redacting",    label: "Redacting PHI",          icon: ShieldCheck,  sub: "Presidio anonymization" },
+  { key: "extracting",   label: "Extracting care plan",   icon: Brain,        sub: "LLaMA 3 structured extraction" },
 ];
 
 const STAGE_ORDER: Stage[] = ["uploading", "transcribing", "redacting", "extracting", "done"];
@@ -43,6 +42,7 @@ export default function UploadPage() {
   const [dragging, setDragging] = useState(false);
   const [stage, setStage] = useState<Stage>("idle");
   const [recording, setRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
   const [visitDate, setVisitDate] = useState(new Date().toISOString().split("T")[0]);
   const [visitType, setVisitType] = useState("routine checkup");
   const [tags, setTags] = useState("");
@@ -58,11 +58,19 @@ export default function UploadPage() {
     if (!stored) { router.push("/login"); return; }
     const u = JSON.parse(stored) as AuthUser;
     setUser(u);
+    // Patients cannot upload recordings — redirect to dashboard
     if (u.role === "patient") {
       toast.error("Patients cannot upload recordings. Only clinicians can process audio.");
       router.push("/dashboard");
     }
   }, [router]);
+
+  // ── Recording timer ───────────────────────────────────────────
+  useEffect(() => {
+    if (!recording) { setRecordSeconds(0); return; }
+    const iv = setInterval(() => setRecordSeconds(s => s + 1), 1000);
+    return () => clearInterval(iv);
+  }, [recording]);
 
   // ── Dropzone ──────────────────────────────────────────────────
   const onDrop = useCallback((e: React.DragEvent) => {
@@ -87,7 +95,7 @@ export default function UploadPage() {
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       mr.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        const f = new File([blob], `consultation-${Date.now()}.webm`, { type: "audio/webm" });
+        const f = new File([blob], `live-recording-${Date.now()}.webm`, { type: "audio/webm" });
         setFile(f);
         stream.getTracks().forEach(t => t.stop());
         toast.success("Recording saved — ready to process");
@@ -96,7 +104,7 @@ export default function UploadPage() {
       mediaRecorderRef.current = mr;
       setRecording(true);
     } catch {
-      toast.error("Microphone access denied. Please allow microphone access in your browser settings.");
+      toast.error("Microphone access denied. Please allow microphone access.");
     }
   };
 
@@ -130,13 +138,14 @@ export default function UploadPage() {
 
       setStage("done");
 
+      // Add to pending approvals queue (clinician must approve before patient sees it)
       const pending = JSON.parse(localStorage.getItem("medsift_pending") || "[]") as number[];
       if (!pending.includes(ar.visit_id)) {
         pending.push(ar.visit_id);
         localStorage.setItem("medsift_pending", JSON.stringify(pending));
       }
 
-      toast.success("Processing complete! Visit is pending clinician approval.");
+      toast.success("Processing complete! Awaiting clinician approval.");
     } catch (err) {
       setStage("error");
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -159,75 +168,91 @@ export default function UploadPage() {
     }
   };
 
+  const fmtTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-
-      {/* ── Page header ───────────────────────────────────────── */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[#0ea5e9] to-[#06b6d4] flex items-center justify-center">
-            <Stethoscope className="h-5 w-5 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">New Consultation Recording</h1>
-        </div>
-        <p className="text-muted-foreground text-sm ml-12">
-          Upload an audio file or record live to generate a structured care plan and SOAP note.
-        </p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">Process New Recording</h1>
+        <p className="text-muted-foreground text-sm mt-1">Upload a file or use live recording to run the full MedSift pipeline.</p>
       </div>
 
       {stage === "idle" && (
         <>
-          {/* ── Live Recording Hero Banner (top, prominent) ─────── */}
-          <Card className={`mb-6 border-2 transition-all duration-300 ${
-            recording
-              ? "border-red-400 bg-red-50 shadow-lg shadow-red-100"
-              : "border-[#0ea5e9]/30 bg-gradient-to-br from-[#0ea5e9]/5 to-[#06b6d4]/5"
-          }`}>
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                {/* Left: icon + label */}
-                <div className="flex items-center gap-4 flex-1">
-                  <div className={`h-16 w-16 rounded-2xl flex items-center justify-center transition-all ${
-                    recording
-                      ? "bg-red-500 shadow-lg shadow-red-300"
-                      : "bg-gradient-to-br from-[#0ea5e9] to-[#06b6d4] shadow-lg shadow-[#0ea5e9]/30"
-                  }`}>
-                    {recording ? (
-                      <Radio className="h-8 w-8 text-white animate-pulse" />
-                    ) : (
-                      <Mic className="h-8 w-8 text-white" />
-                    )}
-                  </div>
-                  <div>
-                    {recording ? (
-                      <>
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-                          <span className="text-red-600 font-bold text-lg">Recording in Progress</span>
-                        </div>
-                        <p className="text-sm text-red-500">
-                          Consultation is being captured — click Stop when finished
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <h2 className="font-bold text-lg text-gray-800">Live Consultation Recording</h2>
-                        <p className="text-sm text-muted-foreground">
-                          Click <strong>Start Recording</strong> to capture the consultation directly in your browser
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
+          {/* Mode toggle */}
+          <div className="inline-flex rounded-xl border bg-muted p-1 mb-6">
+            <button
+              onClick={() => { setMode("file"); setFile(null); }}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${mode === "file" ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <span className="flex items-center gap-2"><Upload className="h-4 w-4" /> Upload File</span>
+            </button>
+            <button
+              onClick={() => { setMode("live"); setFile(null); }}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${mode === "live" ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <span className="flex items-center gap-2"><Mic className="h-4 w-4" /> Live Recording</span>
+            </button>
+          </div>
 
-                {/* Right: button */}
-                <div className="shrink-0 flex flex-col items-center gap-2">
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* File upload dropzone */}
+            {mode === "file" && (
+              <div className="md:col-span-2">
+                <div
+                  onDrop={onDrop}
+                  onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                  onDragLeave={() => setDragging(false)}
+                  onClick={() => inputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer transition-colors ${
+                    dragging ? "border-primary bg-primary/5" : file ? "border-green-400 bg-green-50" : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/50"
+                  }`}
+                >
+                  <input ref={inputRef} type="file" accept=".mp3,.wav,.m4a,.webm,.ogg" className="hidden" onChange={onFileChange} />
+                  {file ? (
+                    <>
+                      <FileAudio className="h-12 w-12 text-green-500 mb-3" />
+                      <p className="font-semibold text-green-700">{file.name}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{(file.size / 1024 / 1024).toFixed(1)} MB · Click to change</p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-12 w-12 text-muted-foreground mb-3" />
+                      <p className="font-semibold">Drop audio file here</p>
+                      <p className="text-sm text-muted-foreground mt-1">or click to browse</p>
+                      <p className="text-xs text-muted-foreground/70 mt-3">.mp3 · .wav · .m4a · .webm</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Live recording panel */}
+            {mode === "live" && (
+              <div className="md:col-span-2">
+                <div className="border-2 rounded-2xl p-12 flex flex-col items-center justify-center gap-6"
+                  style={{ borderColor: recording ? "#dc2626" : "#e2e8f0", background: recording ? "rgba(220,38,38,0.03)" : "transparent" }}>
+
+                  {/* Recording indicator */}
+                  {recording && (
+                    <div className="flex items-center gap-2 text-red-600 font-semibold animate-pulse">
+                      <Radio className="h-5 w-5" />
+                      <span>Recording in progress</span>
+                    </div>
+                  )}
+
+                  {/* Timer */}
+                  <div className="text-5xl font-black font-mono" style={{ color: recording ? "#dc2626" : "#94a3b8" }}>
+                    {fmtTime(recordSeconds)}
+                  </div>
+
+                  {/* Record / Stop button */}
                   {!recording ? (
                     <Button
                       size="lg"
                       onClick={startRecording}
-                      className="gap-2 px-10 py-6 text-base text-white font-semibold rounded-xl"
-                      style={{ background: "#dc2626", boxShadow: "0 6px 20px rgba(220,38,38,0.35)" }}
+                      className="gap-2 px-8 text-white"
+                      style={{ background: "#dc2626", boxShadow: "0 4px 16px rgba(220,38,38,0.3)" }}
                     >
                       <Mic className="h-5 w-5" /> Start Recording
                     </Button>
@@ -236,99 +261,44 @@ export default function UploadPage() {
                       size="lg"
                       onClick={stopRecording}
                       variant="outline"
-                      className="gap-2 px-10 py-6 text-base font-semibold rounded-xl border-2 border-red-400 text-red-600 hover:bg-red-100"
+                      className="gap-2 px-8 border-red-400 text-red-600 hover:bg-red-50"
                     >
                       <Square className="h-5 w-5 fill-current" /> Stop Recording
                     </Button>
                   )}
+
+                  {/* Recorded file ready indicator */}
+                  {file && !recording && (
+                    <div className="flex items-center gap-2 text-green-600 text-sm font-medium bg-green-50 border border-green-200 rounded-xl px-4 py-2">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Recorded: {file.name} ({(file.size / 1024).toFixed(0)} KB)</span>
+                    </div>
+                  )}
+
                   {!recording && !file && (
-                    <span className="text-xs text-muted-foreground">Requires microphone access</span>
+                    <p className="text-sm text-muted-foreground">Press the button above to start recording the consultation</p>
                   )}
                 </div>
               </div>
-
-              {/* Recorded file ready */}
-              {file && file.name.startsWith("consultation-") && !recording && (
-                <div className="mt-4 flex items-center gap-2 text-green-700 text-sm font-medium bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-                  <CheckCircle2 className="h-4 w-4 shrink-0" />
-                  <span>Recording saved: <strong>{file.name}</strong> ({(file.size / 1024).toFixed(0)} KB) — ready to process</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ── Divider ─────────────────────────────────────────── */}
-          <div className="flex items-center gap-4 mb-6">
-            <Separator className="flex-1" />
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest px-2">
-              Or upload an audio file
-            </span>
-            <Separator className="flex-1" />
-          </div>
-
-          {/* ── File upload + metadata row ───────────────────────── */}
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* File dropzone */}
-            <div className="md:col-span-2">
-              <div
-                onDrop={onDrop}
-                onDragOver={e => { e.preventDefault(); setDragging(true); }}
-                onDragLeave={() => setDragging(false)}
-                onClick={() => inputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
-                  dragging
-                    ? "border-[#0ea5e9] bg-[#0ea5e9]/5 scale-[1.01]"
-                    : file && !file.name.startsWith("consultation-")
-                    ? "border-green-400 bg-green-50"
-                    : "border-gray-200 hover:border-[#0ea5e9]/50 hover:bg-gray-50/80"
-                }`}
-              >
-                <input ref={inputRef} type="file" accept=".mp3,.wav,.m4a,.webm,.ogg" className="hidden" onChange={onFileChange} />
-                {file && !file.name.startsWith("consultation-") ? (
-                  <>
-                    <div className="h-14 w-14 rounded-2xl bg-green-100 flex items-center justify-center mb-4">
-                      <FileAudio className="h-7 w-7 text-green-600" />
-                    </div>
-                    <p className="font-semibold text-green-700 text-base">{file.name}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{(file.size / 1024 / 1024).toFixed(1)} MB · Click to change file</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="h-14 w-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-                      <Upload className="h-7 w-7 text-gray-400" />
-                    </div>
-                    <p className="font-semibold text-gray-700">Drop your audio file here</p>
-                    <p className="text-sm text-muted-foreground mt-1">or click to browse files</p>
-                    <div className="flex gap-2 mt-4">
-                      {[".mp3", ".wav", ".m4a", ".webm"].map(ext => (
-                        <span key={ext} className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-md font-mono">{ext}</span>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+            )}
 
             {/* Metadata + submit */}
             <div className="space-y-4">
-              <Card className="border-gray-100 shadow-sm">
-                <CardHeader className="pb-3 border-b">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-[#0ea5e9]" />
-                    Visit Details
-                  </CardTitle>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Visit Details</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 pt-4">
+                <CardContent className="space-y-3">
                   <div>
-                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Visit Date</Label>
-                    <Input type="date" value={visitDate} onChange={e => setVisitDate(e.target.value)} className="mt-1.5 text-sm" />
+                    <Label className="text-xs">Visit Date</Label>
+                    <Input type="date" value={visitDate} onChange={e => setVisitDate(e.target.value)} className="mt-1 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Visit Type</Label>
+                    <Label className="text-xs">Visit Type</Label>
                     <select
                       value={visitType}
                       onChange={e => setVisitType(e.target.value)}
-                      className="mt-1.5 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0ea5e9]/20"
+                      className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
                       <option>routine checkup</option>
                       <option>follow-up</option>
@@ -338,14 +308,13 @@ export default function UploadPage() {
                     </select>
                   </div>
                   <div>
-                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tags</Label>
+                    <Label className="text-xs">Tags (comma-separated)</Label>
                     <Input
-                      placeholder="e.g. diabetes, hypertension"
+                      placeholder="diabetes, hypertension"
                       value={tags}
                       onChange={e => setTags(e.target.value)}
-                      className="mt-1.5 text-sm"
+                      className="mt-1 text-sm"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">Separate multiple tags with commas</p>
                   </div>
                 </CardContent>
               </Card>
@@ -353,28 +322,21 @@ export default function UploadPage() {
               <Button
                 onClick={process}
                 disabled={!file || recording}
-                className="w-full gap-2 py-5 text-sm font-semibold rounded-xl"
-                style={file && !recording ? { background: "linear-gradient(135deg, #0ea5e9, #06b6d4)" } : {}}
+                className="w-full gap-2"
               >
-                <Brain className="h-4 w-4" /> Run MedSift Pipeline
+                <Brain className="h-4 w-4" /> Run Pipeline
               </Button>
 
-              <Card className="bg-slate-50 border-slate-200">
+              {/* How it works sidebar */}
+              <Card className="bg-blue-50 border-blue-200">
                 <CardContent className="p-4">
-                  <p className="text-xs font-semibold text-slate-600 mb-2.5 uppercase tracking-wide">Pipeline Steps</p>
-                  <ol className="text-xs text-slate-500 space-y-2">
-                    {[
-                      "Audio uploaded securely",
-                      "Whisper transcribes speech",
-                      "PHI automatically redacted",
-                      "LLM extracts care plan + SOAP note",
-                      "Clinical literature searched",
-                    ].map((step, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="shrink-0 h-4 w-4 rounded-full bg-[#0ea5e9]/15 text-[#0ea5e9] font-bold flex items-center justify-center text-[10px]">{i + 1}</span>
-                        {step}
-                      </li>
-                    ))}
+                  <p className="text-xs font-bold text-blue-800 mb-2">How it works:</p>
+                  <ol className="text-xs text-blue-700 space-y-1.5 list-decimal list-inside">
+                    <li>Audio → Whisper transcribes it</li>
+                    <li>PHI is automatically redacted</li>
+                    <li>LLM extracts care plan + SOAP note</li>
+                    <li>LLM extracts structured care plans</li>
+                    <li>Clinical trials &amp; literature are searched</li>
                   </ol>
                 </CardContent>
               </Card>
@@ -383,153 +345,43 @@ export default function UploadPage() {
         </>
       )}
 
-      {/* ── Processing stages timeline ───────────────────────────── */}
+      {/* ── Processing stages ──────────────────────────────────── */}
       {stage !== "idle" && stage !== "done" && stage !== "error" && (
-        <div className="max-w-2xl mx-auto">
-          <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-gray-50/50 overflow-hidden">
-            <CardHeader className="border-b bg-white/80 backdrop-blur-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#0ea5e9] to-[#06b6d4] flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 text-white animate-spin" />
+        <Card className="max-w-xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" /> Processing…
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Progress value={(stageIndex(stage) / (STAGE_ORDER.length - 2)) * 100} className="h-2" />
+            <div className="space-y-3">
+              {STAGES.map((s) => {
+                const idx = stageIndex(s.key);
+                const cur = stageIndex(stage);
+                const isDone = cur > idx;
+                const isActive = cur === idx;
+                return (
+                  <div key={s.key} className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                    isActive ? "bg-primary/5 border border-primary/20" : isDone ? "opacity-60" : "opacity-30"
+                  }`}>
+                    {isDone ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                    ) : isActive ? (
+                      <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
+                    )}
+                    <div>
+                      <p className={`text-sm font-medium ${isActive ? "text-primary" : ""}`}>{s.label}</p>
+                      <p className="text-xs text-muted-foreground">{s.sub}</p>
                     </div>
-                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
                   </div>
-                  <div>
-                    <CardTitle className="text-lg">Processing Consultation</CardTitle>
-                    <p className="text-sm text-muted-foreground">Running MedSift AI pipeline — please wait</p>
-                  </div>
-                </div>
-                <Badge className="bg-[#0ea5e9]/10 text-[#0ea5e9] border-[#0ea5e9]/20">
-                  Step {stageIndex(stage) + 1} of {STAGES.length}
-                </Badge>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-6">
-              {/* Progress bar */}
-              <div className="relative mb-8">
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#0ea5e9] via-[#06b6d4] to-[#10b981] rounded-full transition-all duration-700 ease-out"
-                    style={{ width: `${((stageIndex(stage) + 1) / STAGES.length) * 100}%` }}
-                  />
-                </div>
-                <div className="flex justify-between mt-2">
-                  <span className="text-xs text-muted-foreground">
-                    {Math.round(((stageIndex(stage) + 1) / STAGES.length) * 100)}% complete
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    ~{Math.max(0, (STAGES.length - stageIndex(stage) - 1) * 5)}s remaining
-                  </span>
-                </div>
-              </div>
-
-              {/* Timeline steps */}
-              <div className="relative">
-                <div className="absolute left-[23px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#0ea5e9] via-gray-200 to-gray-100" />
-                <div className="space-y-1">
-                  {STAGES.map((s) => {
-                    const idx = stageIndex(s.key);
-                    const cur = stageIndex(stage);
-                    const isDone = cur > idx;
-                    const isActive = cur === idx;
-
-                    return (
-                      <div
-                        key={s.key}
-                        className={`relative flex items-start gap-4 p-4 rounded-xl transition-all duration-500 ${
-                          isActive
-                            ? "bg-gradient-to-r from-[#0ea5e9]/10 to-transparent border border-[#0ea5e9]/20 shadow-sm"
-                            : isDone
-                            ? "bg-green-50/50"
-                            : "opacity-50"
-                        }`}
-                      >
-                        <div className={`relative z-10 shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-500 ${
-                          isDone
-                            ? "bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg shadow-green-500/25"
-                            : isActive
-                            ? "bg-gradient-to-br from-[#0ea5e9] to-[#06b6d4] shadow-lg shadow-[#0ea5e9]/30"
-                            : "bg-gray-100 border-2 border-gray-200"
-                        }`}>
-                          {isDone ? (
-                            <CheckCircle2 className="h-6 w-6 text-white" />
-                          ) : isActive ? (
-                            <s.icon className="h-6 w-6 text-white" />
-                          ) : (
-                            <s.icon className="h-6 w-6 text-gray-400" />
-                          )}
-                        </div>
-
-                        <div className="flex-1 min-w-0 pt-1">
-                          <div className="flex items-center gap-2">
-                            <p className={`font-semibold transition-colors ${
-                              isActive ? "text-[#0ea5e9]" : isDone ? "text-green-700" : "text-gray-500"
-                            }`}>
-                              {s.label}
-                            </p>
-                            {isDone && (
-                              <Badge className="bg-green-100 text-green-700 border-0 text-[10px] px-1.5 py-0">Complete</Badge>
-                            )}
-                            {isActive && (
-                              <Badge className="bg-[#0ea5e9]/10 text-[#0ea5e9] border-0 text-[10px] px-1.5 py-0 animate-pulse">In Progress</Badge>
-                            )}
-                          </div>
-                          <p className={`text-sm mt-0.5 ${isActive ? "text-gray-600" : "text-gray-400"}`}>
-                            {s.sub}
-                          </p>
-                          {isActive && (
-                            <div className="mt-2 flex gap-1">
-                              {[0, 150, 300].map(delay => (
-                                <div key={delay} className="h-1.5 w-1.5 rounded-full bg-[#0ea5e9] animate-bounce" style={{ animationDelay: `${delay}ms` }} />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          {isDone ? (
-                            <span className="text-xs text-green-600 font-medium">✓</span>
-                          ) : isActive ? (
-                            <span className="text-xs text-[#0ea5e9] font-medium">~5s</span>
-                          ) : (
-                            <span className="text-xs text-gray-400">Pending</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <ShieldCheck className="h-4 w-4 text-green-500" />
-                  <span>All processing is performed locally — no data leaves your device</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-xs text-green-600 font-medium">Secure</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            {[
-              { icon: ShieldCheck, label: "HIPAA Compliant", color: "#10b981" },
-              { icon: Brain,        label: "AI-Powered",     color: "#8b5cf6" },
-              { icon: FileText,     label: "Structured Output", color: "#0ea5e9" },
-            ].map(tip => (
-              <div key={tip.label} className="flex items-center gap-2 p-3 rounded-xl bg-white border border-gray-100 shadow-sm">
-                <tip.icon className="h-4 w-4" style={{ color: tip.color }} />
-                <span className="text-xs font-medium text-gray-600">{tip.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* ── Error ─────────────────────────────────────────────── */}
@@ -549,25 +401,23 @@ export default function UploadPage() {
       {/* ── Results ───────────────────────────────────────────── */}
       {stage === "done" && analyzeResult && transcribeResult && (
         <div className="space-y-6">
-          {/* Approval notice */}
+          {/* Approval notice banner */}
           <div className="flex items-start gap-3 p-4 rounded-2xl border bg-amber-50 border-amber-200">
             <Clock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="font-semibold text-amber-800">Awaiting clinician approval</p>
               <p className="text-sm text-amber-700 mt-0.5">
-                This summary has been processed and is pending your review. Once approved, the patient will see it in their portal.
+                This summary has been processed and is pending review. Once a clinician approves it, the patient will be able to view it in their portal.
               </p>
             </div>
           </div>
 
           {/* Summary header */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl border bg-card shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl border bg-card">
             <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center">
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
-              </div>
+              <CheckCircle2 className="h-8 w-8 text-green-500" />
               <div>
-                <p className="font-semibold">Processing Complete</p>
+                <p className="font-semibold">Processing complete</p>
                 <p className="text-sm text-muted-foreground">
                   {transcribeResult.duration.toFixed(0)}s audio · {transcribeResult.redaction_log.length} PHI items redacted
                 </p>
@@ -575,7 +425,7 @@ export default function UploadPage() {
             </div>
             <div className="flex items-center gap-3">
               <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exportLoading} className="gap-1.5">
-                <Download className="h-4 w-4" /> {exportLoading ? "Generating…" : "Export PDF"}
+                <Download className="h-4 w-4" /> {exportLoading ? "Generating…" : "PDF"}
               </Button>
               <Button size="sm" className="gap-1.5" onClick={() => router.push(`/visits/${analyzeResult.visit_id}`)}>
                 <Eye className="h-4 w-4" /> Full Details
@@ -583,7 +433,7 @@ export default function UploadPage() {
             </div>
           </div>
 
-          {/* Result tabs — Risk tab removed */}
+          {/* Result tabs */}
           <div className="flex gap-2 border-b pb-0">
             {(["care-plan", "soap", "transcript"] as const).map(t => (
               <button
@@ -650,42 +500,31 @@ export default function UploadPage() {
             <div className="grid md:grid-cols-2 gap-4">
               {(["subjective", "objective", "assessment", "plan"] as const).map((section) => {
                 const data = analyzeResult.clinician_note.soap_note[section];
-                const fields = {
-                  subjective: [
-                    { label: "CC", val: data.chief_complaint },
-                    { label: "HPI", val: data.history_of_present_illness },
-                    { label: "ROS", val: data.review_of_systems },
-                  ],
-                  objective: [
-                    { label: "Vitals", val: data.vitals },
-                    { label: "PE", val: data.physical_exam_findings },
-                  ],
-                  assessment: [
-                    { label: "Diagnoses", val: data.diagnoses?.join(", ") },
-                    { label: "Impression", val: data.clinical_impression },
-                  ],
-                  plan: [
-                    { label: "Follow-up", val: data.follow_up },
-                    { label: "Education", val: data.patient_education },
-                  ],
-                }[section];
+                const findings = data.findings ?? [];
+                const hasContent = findings.length > 0;
                 return (
-                  <Card key={section}>
+                  <Card key={section} className={!hasContent ? "border-red-200 bg-red-50/30" : ""}>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground">
+                      <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
                         {section === "subjective" ? "S — Subjective" : section === "objective" ? "O — Objective" : section === "assessment" ? "A — Assessment" : "P — Plan"}
+                        {!hasContent && (
+                          <span className="text-red-500 text-[10px] font-bold normal-case tracking-normal border border-red-300 bg-red-100 rounded px-1.5">
+                            No data extracted
+                          </span>
+                        )}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm space-y-2">
-                      {fields.map(({ label, val }) => (
-                        <p key={label}>
-                          <strong>{label}:</strong>{" "}
-                          {val ? <span>{val}</span> : <span className="text-red-500 italic font-medium">Not provided</span>}
-                        </p>
-                      ))}
+                      {hasContent ? (
+                        <ul className="list-disc list-inside space-y-1">
+                          {findings.map((f, i) => <li key={i}>{f}</li>)}
+                        </ul>
+                      ) : (
+                        <p className="text-muted-foreground italic">No findings extracted for this section.</p>
+                      )}
                       {data.evidence && data.evidence.length > 0 && (
                         <div className="text-xs text-blue-600 italic space-y-1 border-t pt-2 mt-2">
-                          {data.evidence.slice(0, 2).map((e, i) => <p key={i}>"{e}"</p>)}
+                          {data.evidence.slice(0, 2).map((e, i) => <p key={i}>&quot;{e}&quot;</p>)}
                         </div>
                       )}
                     </CardContent>
@@ -713,7 +552,11 @@ export default function UploadPage() {
                 <CardContent>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap max-h-96 overflow-y-auto">{transcribeResult.redacted_transcript}</p>
                   <div className="mt-3 pt-3 border-t">
-                    <p className="text-xs text-muted-foreground">{transcribeResult.redaction_log.length} items redacted</p>
+                    {transcribeResult.redaction_log.length > 0 ? (
+                      <p className="text-xs text-muted-foreground">Redacted: {transcribeResult.redaction_log.length} items</p>
+                    ) : (
+                      <p className="text-xs text-green-600">✓ No PHI detected — transcript is clean</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -722,7 +565,7 @@ export default function UploadPage() {
 
           <div className="flex gap-3 pt-2">
             <Button variant="outline" onClick={() => { setStage("idle"); setFile(null); setTranscribeResult(null); setAnalyzeResult(null); }}>
-              Process Another Recording
+              Process another
             </Button>
             {user?.role === "clinician" && (
               <Button onClick={() => router.push(`/visits/${analyzeResult.visit_id}`)} className="gap-2">
@@ -735,3 +578,4 @@ export default function UploadPage() {
     </div>
   );
 }
+

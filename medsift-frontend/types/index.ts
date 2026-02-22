@@ -256,3 +256,23 @@ export interface AuthUser {
   phone?: string;
   sms_consent?: boolean;
 }
+// ─── Grounding / Hallucination Detection ──────────────────────────────────────
+export interface GroundingItem {
+  category: string;
+  item: string;
+  index: number;
+  score: number;
+  evidence_match: number;
+  claim_support: number;
+  has_evidence: boolean;
+  flag: "grounded" | "likely_grounded" | "uncertain" | "likely_hallucinated";
+}
+
+export interface GroundingReport {
+  overall_score: number;
+  overall_flag: "grounded" | "likely_grounded" | "uncertain" | "likely_hallucinated";
+  total_items: number;
+  grounded_count: number;
+  flagged_count: number;
+  items: GroundingItem[];
+}

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  getVisit, submitFeedback, exportPDF, downloadPDF, getLiterature, getTrials
+  getVisit, submitFeedback, exportPDF, downloadPDF, getLiterature, getTrials, getGrounding
 } from "@/lib/api";
 import {
   ArrowLeft, Download, BookOpen, CheckCircle2, XCircle,
@@ -17,7 +17,7 @@ import {
   Printer, Share2,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { VisitRecord, LiteratureResult, ClinicalTrial, AuthUser } from "@/types";
+import type { VisitRecord, LiteratureResult, ClinicalTrial, AuthUser, GroundingReport } from "@/types";
 
 export default function VisitDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +31,7 @@ export default function VisitDetailPage() {
   const [activeTab, setActiveTab] = useState<"patient" | "soap" | "research" | "transcript">("patient");
   const [feedback, setFeedback] = useState<Record<string, "correct" | "incorrect" | "relevant" | "not_relevant">>({});
   const [exportLoading, setExportLoading] = useState(false);
+  const [grounding, setGrounding] = useState<GroundingReport | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
@@ -46,14 +47,16 @@ export default function VisitDetailPage() {
 
     async function load() {
       try {
-        const [v, lit, tri] = await Promise.all([
+        const [v, lit, tri, gr] = await Promise.all([
           getVisit(visitId),
           getLiterature(visitId).catch(() => []),
           getTrials(visitId).catch(() => []),
+          getGrounding(visitId).catch(() => null),
         ]);
         setVisit(v);
         setLiterature(lit);
         setTrials(tri);
+        setGrounding(gr);
       } catch {
         router.push("/visits");
       } finally {
@@ -176,6 +179,15 @@ export default function VisitDetailPage() {
               {isApproved && !isPending && (
                 <Badge className="bg-green-100 text-green-700 border-green-300 gap-1">
                   <CheckCircle2 className="h-3 w-3" /> Approved
+                </Badge>
+              )}
+              {grounding && (
+                <Badge className={
+                  grounding.overall_score >= 75 ? "bg-green-100 text-green-700 border-green-300 gap-1" :
+                  grounding.overall_score >= 50 ? "bg-yellow-100 text-yellow-700 border-yellow-300 gap-1" :
+                  "bg-red-100 text-red-700 border-red-300 gap-1"
+                } title={grounding.grounded_count + " of " + grounding.total_items + " items grounded in transcript"}>
+                  {grounding.overall_score >= 75 ? "✓" : grounding.overall_score >= 50 ? "~" : "⚠"} {grounding.overall_score}% Grounded
                 </Badge>
               )}
             </div>
@@ -306,6 +318,7 @@ export default function VisitDetailPage() {
           </button>
         ))}
       </div>
+
 
       {/* ── Patient Summary tab ───────────────────────────────── */}
       {activeTab === "patient" && visit.patient_summary && (
