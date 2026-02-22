@@ -57,7 +57,7 @@ export default function HomePage() {
       </nav>
 
       {/* ── HERO SECTION ───────────────────────────────────────────────── */}
-      <section className="relative min-h-screen pt-36 pb-16 overflow-hidden">
+      <section className="relative min-h-screen pt-28 pb-16 overflow-hidden">
         {/* Background Decorations */}
         <div className="absolute inset-0 pointer-events-none">
           {/* Top right corner stripes */}
@@ -112,24 +112,10 @@ export default function HomePage() {
                 </Button>
               </div>
 
-              {/* Stats */}
-              <div className="flex gap-10">
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">100%</div>
-                  <div className="text-sm text-gray-500">Local Processing</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">&lt;30s</div>
-                  <div className="text-sm text-gray-500">Processing Time</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">50+</div>
-                  <div className="text-sm text-gray-500">PHI Types Detected</div>
-                </div>
-              </div>
+              {/* Stats removed - now shown in floating tiles */}
             </div>
 
-            {/* Right Column - Circular Images Cluster */}
+            {/* Right Column - Circular Images Cluster with Floating Tiles */}
             <div className={`relative transition-all duration-1000 delay-300 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
               <div className="relative w-full h-[550px] lg:h-[600px]">
                 {/* Large circle - top right */}
@@ -171,10 +157,51 @@ export default function HomePage() {
                   </div>
                 </div>
 
+                {/* ═══ FLOATING TILES - Teal Glass Effect ═══ */}
+                
+                {/* Tile 1: 100% Local - Top left */}
+                <div className="absolute top-12 left-[8%] backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl px-4 py-3 shadow-lg border border-[#0ea5e9]/30 z-20 animate-[fadeInUp_0.6s_ease_0.3s_both]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-white/80 flex items-center justify-center">
+                      <Lock className="h-5 w-5 text-[#0ea5e9]" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900">100%</p>
+                      <p className="text-xs text-gray-600">Local Processing</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tile 2: <30s Processing - Top right, outside images */}
+                <div className="absolute top-4 -right-16 backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl px-4 py-3 shadow-lg border border-[#0ea5e9]/30 z-20 animate-[fadeInUp_0.6s_ease_0.5s_both]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-white/80 flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-[#0ea5e9]" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900">&lt;30s</p>
+                      <p className="text-xs text-gray-600">Processing Time</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tile 3: 50+ PHI Types - Bottom middle */}
+                <div className="absolute bottom-[25%] left-[20%] backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl px-4 py-3 shadow-lg border border-[#0ea5e9]/30 z-20 animate-[fadeInUp_0.6s_ease_0.7s_both]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-white/80 flex items-center justify-center">
+                      <ShieldCheck className="h-5 w-5 text-[#0ea5e9]" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900">50+</p>
+                      <p className="text-xs text-gray-600">PHI Types Detected</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Decorative elements */}
                 {/* Cyan filled circle decoration */}
-                <div className="absolute top-[15%] left-[35%] w-12 h-12 bg-[#0ea5e9] rounded-full opacity-20" />
-                
+                <div className="absolute top-[15%] left-[35%] w-8 h-8 bg-[#0ea5e9] rounded-full opacity-20" />
+
                 {/* Small dots cluster */}
                 <div className="absolute bottom-[30%] left-[25%] grid grid-cols-3 gap-1.5">
                   {[...Array(9)].map((_, i) => (
@@ -198,7 +225,7 @@ export default function HomePage() {
               Complete <span className="text-[#0ea5e9]">Pipeline</span>
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-              Six specialized modules working together to transform audio into actionable care plans.
+              Five specialized modules working together to transform audio into actionable care plans.
             </p>
           </div>
 
@@ -207,7 +234,6 @@ export default function HomePage() {
               { icon: Mic, title: "Voice Capture", desc: "Record directly in browser or upload audio files. Supports MP3, WAV, M4A, and WebM.", color: "#0ea5e9" },
               { icon: ShieldCheck, title: "PHI Protection", desc: "Microsoft Presidio automatically redacts 50+ identifier types before AI processing.", color: "#10b981" },
               { icon: FileText, title: "Care Plans & SOAP", desc: "Generate structured SOAP notes and patient-friendly summaries with evidence quotes.", color: "#8b5cf6" },
-              { icon: Activity, title: "Risk Scoring", desc: "AI scores patient risk 0-100 with red flag detection and follow-up priorities.", color: "#f43f5e" },
               { icon: FlaskConical, title: "Clinical Trials", desc: "Auto-match patient conditions to actively recruiting ClinicalTrials.gov studies.", color: "#f59e0b" },
               { icon: Search, title: "PubMed Search", desc: "Find relevant peer-reviewed research papers ranked by citation impact.", color: "#06b6d4" },
             ].map((feature) => (
@@ -236,7 +262,7 @@ export default function HomePage() {
               How It <span className="text-[#0ea5e9]">Works</span>
             </h2>
             <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-              Our six-stage pipeline processes your audio entirely on-device in under 30 seconds.
+              Our five-stage pipeline processes your audio entirely on-device in under 30 seconds.
             </p>
           </div>
 
@@ -246,8 +272,7 @@ export default function HomePage() {
               { num: "02", icon: Brain, title: "Transcribe", desc: "OpenAI Whisper converts speech to text on your device" },
               { num: "03", icon: ShieldCheck, title: "Protect", desc: "Microsoft Presidio redacts all PHI before AI processing" },
               { num: "04", icon: FileText, title: "Extract", desc: "LLaMA 3 structures medications, tests, and SOAP notes" },
-              { num: "05", icon: Activity, title: "Analyze", desc: "Hybrid rule + LLM engine scores risk and flags issues" },
-              { num: "06", icon: CheckCircle2, title: "Deliver", desc: "Care plan ready for clinician review and patient access" },
+              { num: "05", icon: CheckCircle2, title: "Deliver", desc: "Care plan ready for clinician review and patient access" },
             ].map((step) => (
               <div key={step.num} className="relative p-6 rounded-2xl border border-gray-100 hover:border-[#0ea5e9]/50 hover:shadow-lg transition-all group bg-white">
                 <span className="absolute top-6 right-6 text-5xl font-bold text-gray-100 group-hover:text-[#0ea5e9]/20 transition-colors">
@@ -380,13 +405,13 @@ export default function HomePage() {
       <footer className="py-12 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-          <Image src="/logo.png" alt="MedSift AI" width={180} height={80} className="h-36 w-auto object-contain mix-blend-multiply" />
+            <Image src="/logo.png" alt="MedSift AI" width={150} height={40} className="h-10 w-auto object-contain" />
             <div className="flex items-center gap-8 text-sm text-gray-500">
               <a href="#features" className="hover:text-[#0ea5e9] transition-colors">Features</a>
               <a href="#how-it-works" className="hover:text-[#0ea5e9] transition-colors">How it Works</a>
               <a href="#about" className="hover:text-[#0ea5e9] transition-colors">About</a>
             </div>
-            <p className="text-sm text-gray-500">©️ 2026 MedSift AI · Hacklytics @ Georgia Tech</p>
+            <p className="text-sm text-gray-500">© 2026 MedSift AI · Hacklytics @ Georgia Tech</p>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-100">
             <p className="text-xs text-gray-400 text-center max-w-2xl mx-auto">
@@ -395,6 +420,20 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Animation keyframes */}
+      <style jsx global>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
