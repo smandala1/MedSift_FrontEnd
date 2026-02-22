@@ -8,16 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import {
   Upload, CheckCircle2, Circle, Loader2, AlertTriangle,
-  FileAudio, Mic, ShieldCheck, Brain, FileText,
+  FileAudio, Mic, ShieldCheck, Brain, Activity, FileText,
   ArrowRight, Download, Eye, Square, Radio, Clock
 } from "lucide-react";
 import { transcribeAudio, analyzeTranscript, exportPDF, downloadPDF } from "@/lib/api";
 import { toast } from "sonner";
 import type { TranscribeResponse, AnalyzeResponse, AuthUser } from "@/types";
 
-type Stage = "idle" | "uploading" | "transcribing" | "redacting" | "extracting" | "done" | "error";
+type Stage = "idle" | "uploading" | "transcribing" | "redacting" | "extracting" | "scoring" | "done" | "error";
 type Mode = "file" | "live";
 
 const STAGES: { key: Stage; label: string; icon: React.ElementType; sub: string }[] = [
@@ -25,9 +26,10 @@ const STAGES: { key: Stage; label: string; icon: React.ElementType; sub: string 
   { key: "transcribing", label: "Transcribing (Whisper)", icon: Mic,          sub: "Local speech-to-text" },
   { key: "redacting",    label: "Redacting PHI",          icon: ShieldCheck,  sub: "Presidio anonymization" },
   { key: "extracting",   label: "Extracting care plan",   icon: Brain,        sub: "LLaMA 3 structured extraction" },
+  { key: "scoring",      label: "Scoring risk",           icon: Activity,     sub: "Rule-based + LLM analysis" },
 ];
 
-const STAGE_ORDER: Stage[] = ["uploading", "transcribing", "redacting", "extracting", "done"];
+const STAGE_ORDER: Stage[] = ["uploading", "transcribing", "redacting", "extracting", "scoring", "done"];
 
 function stageIndex(s: Stage) { return STAGE_ORDER.indexOf(s); }
 
@@ -48,7 +50,7 @@ export default function UploadPage() {
   const [tags, setTags] = useState("");
   const [transcribeResult, setTranscribeResult] = useState<TranscribeResponse | null>(null);
   const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<"care-plan" | "soap" | "transcript">("care-plan");
+  const [activeTab, setActiveTab] = useState<"care-plan" | "soap" | "risk" | "transcript">("care-plan");
   const [errorMsg, setErrorMsg] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -136,6 +138,9 @@ export default function UploadPage() {
       });
       setAnalyzeResult(ar);
 
+      setStage("scoring");
+      await new Promise(r => setTimeout(r, 400));
+
       setStage("done");
 
       // Add to pending approvals queue (clinician must approve before patient sees it)
@@ -167,6 +172,14 @@ export default function UploadPage() {
       setExportLoading(false);
     }
   };
+
+  const riskColor = analyzeResult?.risk_assessment.risk_level === "high"
+    ? "text-red-600" : analyzeResult?.risk_assessment.risk_level === "medium"
+    ? "text-amber-600" : "text-green-600";
+
+  const riskBg = analyzeResult?.risk_assessment.risk_level === "high"
+    ? "bg-red-50 border-red-200" : analyzeResult?.risk_assessment.risk_level === "medium"
+    ? "bg-amber-50 border-amber-200" : "bg-green-50 border-green-200";
 
   const fmtTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
@@ -335,7 +348,7 @@ export default function UploadPage() {
                     <li>Audio → Whisper transcribes it</li>
                     <li>PHI is automatically redacted</li>
                     <li>LLM extracts care plan + SOAP note</li>
-                    <li>LLM extracts structured care plans</li>
+                    <li>Risk scoring identifies red flags</li>
                     <li>Clinical trials &amp; literature are searched</li>
                   </ol>
                 </CardContent>
@@ -345,44 +358,188 @@ export default function UploadPage() {
         </>
       )}
 
-      {/* ── Processing stages ──────────────────────────────────── */}
+      {/* ── Processing stages - Advanced Timeline ──────────────────────────────────── */}
       {stage !== "idle" && stage !== "done" && stage !== "error" && (
-        <Card className="max-w-xl mx-auto">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" /> Processing…
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Progress value={(stageIndex(stage) / (STAGE_ORDER.length - 2)) * 100} className="h-2" />
-            <div className="space-y-3">
-              {STAGES.map((s) => {
-                const idx = stageIndex(s.key);
-                const cur = stageIndex(stage);
-                const isDone = cur > idx;
-                const isActive = cur === idx;
-                return (
-                  <div key={s.key} className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                    isActive ? "bg-primary/5 border border-primary/20" : isDone ? "opacity-60" : "opacity-30"
-                  }`}>
-                    {isDone ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-                    ) : isActive ? (
-                      <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
-                    ) : (
-                      <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
-                    )}
-                    <div>
-                      <p className={`text-sm font-medium ${isActive ? "text-primary" : ""}`}>{s.label}</p>
-                      <p className="text-xs text-muted-foreground">{s.sub}</p>
+        <div className="max-w-2xl mx-auto">
+          {/* Main processing card */}
+          <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-gray-50/50 overflow-hidden">
+            <CardHeader className="border-b bg-white/80 backdrop-blur-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#0ea5e9] to-[#06b6d4] flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 text-white animate-spin" />
                     </div>
+                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                  <div>
+                    <CardTitle className="text-lg">Processing Your Recording</CardTitle>
+                    <p className="text-sm text-muted-foreground">Running MedSift AI pipeline...</p>
+                  </div>
+                </div>
+                <Badge className="bg-[#0ea5e9]/10 text-[#0ea5e9] border-[#0ea5e9]/20">
+                  Step {stageIndex(stage) + 1} of {STAGES.length}
+                </Badge>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="p-6">
+              {/* Animated progress bar */}
+              <div className="relative mb-8">
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-[#0ea5e9] via-[#06b6d4] to-[#10b981] rounded-full transition-all duration-700 ease-out relative"
+                    style={{ width: `${((stageIndex(stage) + 1) / STAGES.length) * 100}%` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                  </div>
+                </div>
+                <div className="flex justify-between mt-2">
+                  <span className="text-xs text-muted-foreground">{Math.round(((stageIndex(stage) + 1) / STAGES.length) * 100)}% complete</span>
+                  <span className="text-xs text-muted-foreground">~{Math.max(0, (STAGES.length - stageIndex(stage) - 1) * 5)}s remaining</span>
+                </div>
+              </div>
+
+              {/* Timeline steps */}
+              <div className="relative">
+                {/* Vertical line */}
+                <div className="absolute left-[23px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#0ea5e9] via-gray-200 to-gray-100" />
+                
+                <div className="space-y-1">
+                  {STAGES.map((s, i) => {
+                    const idx = stageIndex(s.key);
+                    const cur = stageIndex(stage);
+                    const isDone = cur > idx;
+                    const isActive = cur === idx;
+                    const isPending = cur < idx;
+                    
+                    return (
+                      <div 
+                        key={s.key} 
+                        className={`relative flex items-start gap-4 p-4 rounded-xl transition-all duration-500 ${
+                          isActive 
+                            ? "bg-gradient-to-r from-[#0ea5e9]/10 to-transparent border border-[#0ea5e9]/20 shadow-sm" 
+                            : isDone 
+                              ? "bg-green-50/50" 
+                              : "opacity-50"
+                        }`}
+                      >
+                        {/* Step indicator */}
+                        <div className={`relative z-10 shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-500 ${
+                          isDone 
+                            ? "bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg shadow-green-500/25" 
+                            : isActive 
+                              ? "bg-gradient-to-br from-[#0ea5e9] to-[#06b6d4] shadow-lg shadow-[#0ea5e9]/30" 
+                              : "bg-gray-100 border-2 border-gray-200"
+                        }`}>
+                          {isDone ? (
+                            <CheckCircle2 className="h-6 w-6 text-white" />
+                          ) : isActive ? (
+                            <div className="relative">
+                              <s.icon className="h-6 w-6 text-white" />
+                              <div className="absolute inset-0 animate-ping">
+                                <s.icon className="h-6 w-6 text-white opacity-50" />
+                              </div>
+                            </div>
+                          ) : (
+                            <s.icon className="h-6 w-6 text-gray-400" />
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 pt-1">
+                          <div className="flex items-center gap-2">
+                            <p className={`font-semibold transition-colors ${
+                              isActive ? "text-[#0ea5e9]" : isDone ? "text-green-700" : "text-gray-500"
+                            }`}>
+                              {s.label}
+                            </p>
+                            {isDone && (
+                              <Badge className="bg-green-100 text-green-700 border-0 text-[10px] px-1.5 py-0">
+                                Done
+                              </Badge>
+                            )}
+                            {isActive && (
+                              <Badge className="bg-[#0ea5e9]/10 text-[#0ea5e9] border-0 text-[10px] px-1.5 py-0 animate-pulse">
+                                In Progress
+                              </Badge>
+                            )}
+                          </div>
+                          <p className={`text-sm mt-0.5 ${isActive ? "text-gray-600" : "text-gray-400"}`}>
+                            {s.sub}
+                          </p>
+                          
+                          {/* Active step details */}
+                          {isActive && (
+                            <div className="mt-3 flex items-center gap-4">
+                              <div className="flex items-center gap-2">
+                                <div className="flex gap-1">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-[#0ea5e9] animate-bounce" style={{ animationDelay: "0ms" }} />
+                                  <div className="h-1.5 w-1.5 rounded-full bg-[#0ea5e9] animate-bounce" style={{ animationDelay: "150ms" }} />
+                                  <div className="h-1.5 w-1.5 rounded-full bg-[#0ea5e9] animate-bounce" style={{ animationDelay: "300ms" }} />
+                                </div>
+                                <span className="text-xs text-[#0ea5e9] font-medium">Processing</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Time estimate */}
+                        <div className={`text-right shrink-0 ${isPending ? "opacity-50" : ""}`}>
+                          {isDone ? (
+                            <span className="text-xs text-green-600 font-medium">✓</span>
+                          ) : isActive ? (
+                            <span className="text-xs text-[#0ea5e9] font-medium">~5s</span>
+                          ) : (
+                            <span className="text-xs text-gray-400">Pending</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Bottom info */}
+              <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-4 w-4 text-green-500" />
+                  <span>All processing happens locally on your device</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs text-green-600 font-medium">Secure</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Processing tips */}
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            {[
+              { icon: ShieldCheck, label: "HIPAA Compliant", color: "#10b981" },
+              { icon: Brain, label: "AI-Powered", color: "#8b5cf6" },
+              { icon: Activity, label: "Real-time Analysis", color: "#0ea5e9" },
+            ].map((tip) => (
+              <div key={tip.label} className="flex items-center gap-2 p-3 rounded-xl bg-white border border-gray-100 shadow-sm">
+                <tip.icon className="h-4 w-4" style={{ color: tip.color }} />
+                <span className="text-xs font-medium text-gray-600">{tip.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
+
+      {/* Shimmer animation style */}
+      <style jsx global>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .animate-shimmer {
+          animation: shimmer 2s infinite;
+        }
+      `}</style>
 
       {/* ── Error ─────────────────────────────────────────────── */}
       {stage === "error" && (
@@ -424,6 +581,9 @@ export default function UploadPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <div className={`px-4 py-2 rounded-xl border text-sm font-bold ${riskBg} ${riskColor}`}>
+                Risk: {analyzeResult.risk_assessment.risk_score}/100 · {analyzeResult.risk_assessment.risk_level.toUpperCase()}
+              </div>
               <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exportLoading} className="gap-1.5">
                 <Download className="h-4 w-4" /> {exportLoading ? "Generating…" : "PDF"}
               </Button>
@@ -435,7 +595,7 @@ export default function UploadPage() {
 
           {/* Result tabs */}
           <div className="flex gap-2 border-b pb-0">
-            {(["care-plan", "soap", "transcript"] as const).map(t => (
+            {(["care-plan", "soap", "risk", "transcript"] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
@@ -443,7 +603,7 @@ export default function UploadPage() {
                   activeTab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {t === "care-plan" ? "Care Plan" : t === "soap" ? "SOAP Note" : "Transcript"}
+                {t === "care-plan" ? "Care Plan" : t === "soap" ? "SOAP Note" : t === "risk" ? "Risk Assessment" : "Transcript"}
               </button>
             ))}
           </div>
@@ -500,37 +660,96 @@ export default function UploadPage() {
             <div className="grid md:grid-cols-2 gap-4">
               {(["subjective", "objective", "assessment", "plan"] as const).map((section) => {
                 const data = analyzeResult.clinician_note.soap_note[section];
-                const findings = data.findings ?? [];
-                const hasContent = findings.length > 0;
+                const fields = {
+                  subjective: [
+                    { label: "CC", val: data.chief_complaint },
+                    { label: "HPI", val: data.history_of_present_illness },
+                    { label: "ROS", val: data.review_of_systems },
+                  ],
+                  objective: [
+                    { label: "Vitals", val: data.vitals },
+                    { label: "PE", val: data.physical_exam_findings },
+                  ],
+                  assessment: [
+                    { label: "Diagnoses", val: data.diagnoses?.join(", ") },
+                    { label: "Impression", val: data.clinical_impression },
+                  ],
+                  plan: [
+                    { label: "Follow-up", val: data.follow_up },
+                    { label: "Education", val: data.patient_education },
+                  ],
+                }[section];
                 return (
-                  <Card key={section} className={!hasContent ? "border-red-200 bg-red-50/30" : ""}>
+                  <Card key={section}>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                      <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground">
                         {section === "subjective" ? "S — Subjective" : section === "objective" ? "O — Objective" : section === "assessment" ? "A — Assessment" : "P — Plan"}
-                        {!hasContent && (
-                          <span className="text-red-500 text-[10px] font-bold normal-case tracking-normal border border-red-300 bg-red-100 rounded px-1.5">
-                            No data extracted
-                          </span>
-                        )}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm space-y-2">
-                      {hasContent ? (
-                        <ul className="list-disc list-inside space-y-1">
-                          {findings.map((f, i) => <li key={i}>{f}</li>)}
-                        </ul>
-                      ) : (
-                        <p className="text-muted-foreground italic">No findings extracted for this section.</p>
-                      )}
+                      {fields.map(({ label, val }) => (
+                        <p key={label}>
+                          <strong>{label}:</strong>{" "}
+                          {val ? (
+                            <span>{val}</span>
+                          ) : (
+                            <span className="text-red-500 italic font-medium">Not provided</span>
+                          )}
+                        </p>
+                      ))}
                       {data.evidence && data.evidence.length > 0 && (
                         <div className="text-xs text-blue-600 italic space-y-1 border-t pt-2 mt-2">
-                          {data.evidence.slice(0, 2).map((e, i) => <p key={i}>&quot;{e}&quot;</p>)}
+                          {data.evidence.slice(0, 2).map((e, i) => <p key={i}>"{e}"</p>)}
                         </div>
                       )}
                     </CardContent>
                   </Card>
                 );
               })}
+            </div>
+          )}
+
+          {/* Risk tab */}
+          {activeTab === "risk" && (
+            <div className="space-y-4">
+              <Card className={`border ${riskBg}`}>
+                <CardContent className="pt-6 flex items-center gap-6">
+                  <div className="text-center">
+                    <div className={`text-5xl font-black ${riskColor}`}>{analyzeResult.risk_assessment.risk_score}</div>
+                    <div className="text-xs text-muted-foreground mt-1">/ 100</div>
+                  </div>
+                  <Separator orientation="vertical" className="h-16" />
+                  <div>
+                    <p className={`text-xl font-bold ${riskColor} capitalize`}>{analyzeResult.risk_assessment.risk_level} Risk</p>
+                    <p className="text-sm text-muted-foreground">{analyzeResult.risk_assessment.total_factors_detected} risk factors detected</p>
+                    <p className="text-xs text-muted-foreground mt-2">⚠️ This is not a medical diagnosis.</p>
+                  </div>
+                </CardContent>
+              </Card>
+              {analyzeResult.risk_assessment.red_flags.length > 0 && (
+                <Card className="border-red-200">
+                  <CardHeader className="pb-2"><CardTitle className="text-sm text-red-700">🚨 Red Flags</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
+                    {analyzeResult.risk_assessment.red_flags.map((rf, i) => (
+                      <div key={i} className="border border-red-200 rounded-lg p-3 bg-red-50">
+                        <p className="text-sm font-semibold text-red-700">{rf.flag}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{rf.recommended_action}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Risk Factors</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  {analyzeResult.risk_assessment.risk_factors.map((rf, i) => (
+                    <div key={i} className="flex items-start justify-between gap-2 text-sm">
+                      <span>{rf.factor}</span>
+                      <Badge variant="outline">+{rf.points}</Badge>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -552,11 +771,7 @@ export default function UploadPage() {
                 <CardContent>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap max-h-96 overflow-y-auto">{transcribeResult.redacted_transcript}</p>
                   <div className="mt-3 pt-3 border-t">
-                    {transcribeResult.redaction_log.length > 0 ? (
-                      <p className="text-xs text-muted-foreground">Redacted: {transcribeResult.redaction_log.length} items</p>
-                    ) : (
-                      <p className="text-xs text-green-600">✓ No PHI detected — transcript is clean</p>
-                    )}
+                    <p className="text-xs text-muted-foreground">Redacted: {transcribeResult.redaction_log.length} items</p>
                   </div>
                 </CardContent>
               </Card>
@@ -578,4 +793,3 @@ export default function UploadPage() {
     </div>
   );
 }
-

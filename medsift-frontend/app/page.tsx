@@ -110,24 +110,10 @@ export default function HomePage() {
                 </Button>
               </div>
 
-              {/* Stats */}
-              <div className="flex gap-10">
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">100%</div>
-                  <div className="text-sm text-gray-500">Local Processing</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">&lt;30s</div>
-                  <div className="text-sm text-gray-500">Processing Time</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">50+</div>
-                  <div className="text-sm text-gray-500">PHI Types Detected</div>
-                </div>
-              </div>
+              {/* Stats removed - now shown in floating tiles */}
             </div>
 
-            {/* Right Column - Circular Images Cluster */}
+            {/* Right Column - Circular Images Cluster with Floating Tiles */}
             <div className={`relative transition-all duration-1000 delay-300 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
               <div className="relative w-full h-[550px] lg:h-[600px]">
                 {/* Large circle - top right */}
@@ -169,10 +155,51 @@ export default function HomePage() {
                   </div>
                 </div>
 
+                {/* ═══ FLOATING TILES - Teal Glass Effect ═══ */}
+                
+                {/* Tile 1: 100% Local - Top left */}
+                <div className="absolute top-12 left-[8%] backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl px-4 py-3 shadow-lg border border-[#0ea5e9]/30 z-20 animate-[fadeInUp_0.6s_ease_0.3s_both]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-white/80 flex items-center justify-center">
+                      <Lock className="h-5 w-5 text-[#0ea5e9]" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900">100%</p>
+                      <p className="text-xs text-gray-600">Local Processing</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tile 2: <30s Processing - Top right, outside images */}
+                <div className="absolute top-4 -right-16 backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl px-4 py-3 shadow-lg border border-[#0ea5e9]/30 z-20 animate-[fadeInUp_0.6s_ease_0.5s_both]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-white/80 flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-[#0ea5e9]" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900">&lt;30s</p>
+                      <p className="text-xs text-gray-600">Processing Time</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tile 3: 50+ PHI Types - Bottom middle */}
+                <div className="absolute bottom-[25%] left-[20%] backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl px-4 py-3 shadow-lg border border-[#0ea5e9]/30 z-20 animate-[fadeInUp_0.6s_ease_0.7s_both]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-white/80 flex items-center justify-center">
+                      <ShieldCheck className="h-5 w-5 text-[#0ea5e9]" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-gray-900">50+</p>
+                      <p className="text-xs text-gray-600">PHI Types Detected</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Decorative elements */}
                 {/* Cyan filled circle decoration */}
-                <div className="absolute top-[15%] left-[35%] w-12 h-12 bg-[#0ea5e9] rounded-full opacity-20" />
-                
+                <div className="absolute top-[15%] left-[35%] w-8 h-8 bg-[#0ea5e9] rounded-full opacity-20" />
+
                 {/* Small dots cluster */}
                 <div className="absolute bottom-[30%] left-[25%] grid grid-cols-3 gap-1.5">
                   {[...Array(9)].map((_, i) => (
@@ -393,6 +420,20 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Animation keyframes */}
+      <style jsx global>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

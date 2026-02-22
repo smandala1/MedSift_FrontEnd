@@ -8,19 +8,26 @@ import type {
   FeedbackAnalytics,
   AnalyticsSummary,
 } from "@/types";
+import { MOCK_VISITS, MOCK_ANALYTICS, MOCK_TRIALS, MOCK_LITERATURE } from "./mockData";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true" || true; // Enable mock data by default for demo
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...init?.headers },
-    ...init,
-  });
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || `HTTP ${res.status}`);
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      headers: { "Content-Type": "application/json", ...init?.headers },
+      ...init,
+    });
+    if (!res.ok) {
+      const error = await res.text();
+      throw new Error(error || `HTTP ${res.status}`);
+    }
+    return res.json() as Promise<T>;
+  } catch (error) {
+    // If backend is unavailable, throw to let caller handle with mock data
+    throw error;
   }
-  return res.json() as Promise<T>;
 }
 
 // ─── Transcribe ───────────────────────────────────────────────────────────────
@@ -52,6 +59,34 @@ export async function getVisits(params?: {
   sort?: string;
   page?: number;
 }): Promise<VisitRecord[]> {
+  if (USE_MOCK_DATA) {
+    let visits = [...MOCK_VISITS];
+    
+    // Apply search filter
+    if (params?.search) {
+      const search = params.search.toLowerCase();
+      visits = visits.filter(v => 
+        v.visit_type.toLowerCase().includes(search) ||
+        v.tags?.some(t => t.toLowerCase().includes(search)) ||
+        v.patient_summary?.visit_summary?.toLowerCase().includes(search)
+      );
+    }
+    
+    // Apply tag filter
+    if (params?.tag) {
+      visits = visits.filter(v => v.tags?.includes(params.tag!));
+    }
+    
+    // Apply sort
+    if (params?.sort === "date") {
+      visits.sort((a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime());
+    } else if (params?.sort === "risk") {
+      visits.sort((a, b) => (b.risk_assessment?.risk_score ?? 0) - (a.risk_assessment?.risk_score ?? 0));
+    }
+    
+    return visits;
+  }
+  
   const qs = new URLSearchParams();
   if (params?.search) qs.set("search", params.search);
   if (params?.tag) qs.set("tag", params.tag);
@@ -61,6 +96,11 @@ export async function getVisits(params?: {
 }
 
 export async function getVisit(id: number): Promise<VisitRecord> {
+  if (USE_MOCK_DATA) {
+    const visit = MOCK_VISITS.find(v => v.id === id);
+    if (!visit) throw new Error("Visit not found");
+    return visit;
+  }
   return request<VisitRecord>(`/api/visits/${id}`);
 }
 
@@ -86,6 +126,9 @@ export function downloadPDF(blob: Blob, filename = "after-visit-summary.pdf") {
 
 // ─── Trials & Literature ──────────────────────────────────────────────────────
 export async function getTrials(visitId: number): Promise<ClinicalTrial[]> {
+  if (USE_MOCK_DATA) {
+    return MOCK_TRIALS;
+  }
   return request<ClinicalTrial[]>(`/api/trials/${visitId}`);
 }
 
@@ -93,6 +136,9 @@ export async function getLiterature(
   visitId: number,
   refresh = false
 ): Promise<LiteratureResult[]> {
+  if (USE_MOCK_DATA) {
+    return MOCK_LITERATURE;
+  }
   return request<LiteratureResult[]>(
     `/api/literature/${visitId}${refresh ? "?refresh=true" : ""}`
   );
@@ -115,5 +161,8 @@ export async function getFeedbackAnalytics(): Promise<FeedbackAnalytics> {
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
 export async function getAnalytics(): Promise<AnalyticsSummary> {
+  if (USE_MOCK_DATA) {
+    return MOCK_ANALYTICS;
+  }
   return request<AnalyticsSummary>("/api/analytics");
 }

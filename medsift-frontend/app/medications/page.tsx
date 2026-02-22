@@ -18,29 +18,32 @@ interface MedEntry {
   visitId: number;
   visitDate: string;
   visitType: string;
-  status: "active" | "completed" | "unknown";
+  status: "active" | "review" | "stopped";
 }
 
-function inferStatus(med: Medication): "active" | "completed" | "unknown" {
+function inferStatus(med: Medication): "active" | "review" | "stopped" {
+  // Use the status field from the medication if available
+  if (med.status) return med.status;
+  
+  // Fallback to inferring from duration
   const d = (med.duration || "").toLowerCase();
   if (!d || d === "ongoing" || d.includes("indefinitely") || d.includes("long-term")) return "active";
-  if (d.includes("discontinu") || d.includes("stopped") || d.includes("completed")) return "completed";
+  if (d.includes("discontinu") || d.includes("stopped") || d.includes("completed")) return "stopped";
   // if duration looks like "X days / weeks" parse roughly
   const match = d.match(/(\d+)\s*(day|week|month)/);
   if (match) {
-    // assume "complete" if duration is short and specific
-    return "completed";
+    return "active"; // short-term but still active
   }
-  return "unknown";
+  return "review";
 }
 
 const STATUS_STYLES = {
-  active:    { bg: "bg-green-50 border-green-200",  text: "text-green-700",  dot: "bg-green-500",  label: "Active"    },
-  completed: { bg: "bg-slate-50 border-slate-200",  text: "text-slate-500",  dot: "bg-slate-400",  label: "Completed" },
-  unknown:   { bg: "bg-amber-50 border-amber-200",  text: "text-amber-700",  dot: "bg-amber-400",  label: "Review"    },
+  active:  { bg: "bg-green-50 border-green-200",  text: "text-green-700",  dot: "bg-green-500",  label: "Active"  },
+  review:  { bg: "bg-amber-50 border-amber-200",  text: "text-amber-700",  dot: "bg-amber-500",  label: "Review"  },
+  stopped: { bg: "bg-red-50 border-red-200",      text: "text-red-700",    dot: "bg-red-500",    label: "Stopped" },
 };
 
-const FILTER_TABS = ["All", "Active", "Completed", "Review"] as const;
+const FILTER_TABS = ["All", "Active", "Review", "Stopped"] as const;
 type FilterTab = typeof FILTER_TABS[number];
 
 export default function MedicationsPage() {
@@ -91,9 +94,10 @@ export default function MedicationsPage() {
     return entries.filter((e) => {
       const matchTab =
         activeTab === "All" ? true :
-        activeTab === "Active"    ? e.status === "active" :
-        activeTab === "Completed" ? e.status === "completed" :
-        e.status === "unknown";
+        activeTab === "Active"  ? e.status === "active" :
+        activeTab === "Review"  ? e.status === "review" :
+        activeTab === "Stopped" ? e.status === "stopped" :
+        true;
       const q = search.toLowerCase();
       const matchSearch = !q ||
         e.med.name.toLowerCase().includes(q) ||
@@ -104,10 +108,10 @@ export default function MedicationsPage() {
   }, [entries, activeTab, search]);
 
   const counts = useMemo(() => ({
-    All:       entries.length,
-    Active:    entries.filter(e => e.status === "active").length,
-    Completed: entries.filter(e => e.status === "completed").length,
-    Review:    entries.filter(e => e.status === "unknown").length,
+    All:     entries.length,
+    Active:  entries.filter(e => e.status === "active").length,
+    Review:  entries.filter(e => e.status === "review").length,
+    Stopped: entries.filter(e => e.status === "stopped").length,
   }), [entries]);
 
   return (
@@ -127,11 +131,12 @@ export default function MedicationsPage() {
 
       {/* Stats row */}
       {!loading && entries.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 mb-7">
+        <div className="grid grid-cols-4 gap-3 mb-7">
           {[
-            { label: "Total",     value: counts.All,       icon: Pill,          color: "text-blue-600",  bg: "bg-blue-50 border-blue-100"  },
-            { label: "Active",    value: counts.Active,    icon: CheckCircle2,  color: "text-green-600", bg: "bg-green-50 border-green-100" },
-            { label: "For Review",value: counts.Review,    icon: AlertCircle,   color: "text-amber-600", bg: "bg-amber-50 border-amber-100" },
+            { label: "Total",      value: counts.All,     icon: Pill,          color: "text-blue-600",   bg: "bg-blue-50 border-blue-100"  },
+            { label: "Active",     value: counts.Active,  icon: CheckCircle2,  color: "text-green-600",  bg: "bg-green-50 border-green-100" },
+            { label: "For Review", value: counts.Review,  icon: AlertCircle,   color: "text-amber-600",  bg: "bg-amber-50 border-amber-100" },
+            { label: "Stopped",    value: counts.Stopped, icon: XCircle,       color: "text-red-600",    bg: "bg-red-50 border-red-100" },
           ].map(s => (
             <div key={s.label} className={`rounded-xl border p-4 flex items-center gap-3 ${s.bg}`}>
               <s.icon className={`h-5 w-5 shrink-0 ${s.color}`} />

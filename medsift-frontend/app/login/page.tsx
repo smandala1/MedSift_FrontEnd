@@ -122,39 +122,39 @@ function LoginForm() {
 
           {/* Center content - Doctor image with floating cards */}
           <div className="flex-1 flex items-center justify-center relative">
-            {/* Doctor image */}
+            {/* Doctor image - changes based on role */}
             <div className="relative">
               <img
-                src={role === "clinician"
-                  ? "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=500&h=600&fit=crop&crop=face"
-                  : "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&h=600&fit=crop&crop=face"
+                src={role === "clinician" 
+                  ? "https://images.unsplash.com/photo-1666214280557-f1b5022eb634?w=500&h=600&fit=crop&crop=face"
+                  : "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=500&h=600&fit=crop"
                 }
-                alt={role === "clinician" ? "Clinician" : "Patient"}
+                alt={role === "clinician" ? "Doctor at desk" : "Doctor and patient consultation"}
                 className="w-[280px] xl:w-[320px] h-[350px] xl:h-[400px] object-cover rounded-3xl shadow-2xl"
               />
 
               {/* Floating card - top right */}
-              <div className="absolute -top-4 -right-8 bg-white rounded-2xl p-3 shadow-lg border border-gray-100">
+              <div className="absolute -top-4 -right-8 backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl p-3 shadow-lg border border-[#0ea5e9]/30">
                 <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <div className="h-8 w-8 rounded-lg bg-white/80 flex items-center justify-center">
+                    <CheckCircle2 className="h-4 w-4 text-[#0ea5e9]" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-900">5.2 Million</p>
-                    <p className="text-[10px] text-gray-500">Records Processed</p>
+                    <p className="text-xs font-semibold text-gray-900">&lt;30 Seconds</p>
+                    <p className="text-[10px] text-gray-600">Processing Time</p>
                   </div>
                 </div>
               </div>
 
               {/* Floating card - bottom left */}
-              <div className="absolute -bottom-4 -left-6 bg-white rounded-2xl p-3 shadow-lg border border-gray-100">
+              <div className="absolute -bottom-4 -left-6 backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl p-3 shadow-lg border border-[#0ea5e9]/30">
                 <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-lg bg-[#0ea5e9]/10 flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-lg bg-white/80 flex items-center justify-center">
                     <Shield className="h-4 w-4 text-[#0ea5e9]" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-900">99% Accuracy</p>
-                    <p className="text-[10px] text-gray-500">PHI Detection</p>
+                    <p className="text-xs font-semibold text-gray-900">100% Local</p>
+                    <p className="text-[10px] text-gray-600">HIPAA Compliant</p>
                   </div>
                 </div>
               </div>
@@ -381,19 +381,13 @@ function LoginForm() {
               {loading ? "Please wait…" : (showSignup ? "Create Account" : "Login")}
             </Button>
 
-            <Button
+            <Button 
               type="button"
-              variant="outline"
+              variant="outline" 
               onClick={handleGoogle}
-              className="w-full h-12 rounded-xl border-gray-200 hover:bg-gray-50 font-medium gap-3"
+              className="w-full h-12 rounded-xl border-gray-200 hover:bg-gray-50 font-medium"
             >
-              <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
-                <path d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" fill="#FFC107"/>
-                <path d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" fill="#FF3D00"/>
-                <path d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" fill="#4CAF50"/>
-                <path d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.021 35.064 44 29.929 44 24c0-1.341-.138-2.65-.389-3.917z" fill="#1976D2"/>
-              </svg>
-              Login with Google
+              Login With Code
             </Button>
           </form>
 
