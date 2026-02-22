@@ -308,46 +308,25 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── Quick action cards: Upload + Live Recording (clinician only) ── */}
+      {/* ── New Consultation action bar (clinician only) ── */}
       {isClinician && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          {/* Upload File card */}
-          <Link href="/upload">
-            <Card className="border-dashed border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer h-full group">
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-primary/10 group-hover:bg-primary/15 flex items-center justify-center transition-colors shrink-0">
-                  <Upload className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm">Upload Audio File</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Upload .mp3, .wav, .m4a, or .webm file
-                  </p>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 group-hover:translate-x-0.5 transition-transform" />
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Live Recording card */}
-          <Link href="/upload?mode=live">
-            <Card className="border-dashed border-2 border-red-200 hover:border-red-400 hover:bg-red-50/30 transition-all cursor-pointer h-full group">
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors shrink-0 relative">
-                  <Mic className="h-6 w-6 text-red-500" />
-                  {/* Pulse ring */}
-                  <span className="absolute inset-0 rounded-xl border-2 border-red-300 animate-ping opacity-40" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-red-700">Live Recording</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Record consultation directly in browser
-                  </p>
-                </div>
-                <ArrowRight className="h-4 w-4 text-red-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-              </CardContent>
-            </Card>
-          </Link>
+        <div className="flex items-center justify-between mb-8 px-4 py-3 rounded-xl bg-gray-50 border border-gray-100">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">New Consultation</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Upload audio or record live to generate a care plan</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/upload">
+              <button className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 hover:border-[#0ea5e9] hover:text-[#0ea5e9] transition-colors shadow-sm">
+                <Upload className="h-3.5 w-3.5" /> Upload File
+              </button>
+            </Link>
+            <Link href="/upload?mode=live">
+              <button className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition-colors shadow-sm">
+                <Mic className="h-3.5 w-3.5" /> Live Record
+              </button>
+            </Link>
+          </div>
         </div>
       )}
 

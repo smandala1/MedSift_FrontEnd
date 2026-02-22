@@ -113,13 +113,13 @@ function LoginForm() {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-10 xl:p-14 h-full w-full">
           {/* Logo */}
-          <Link href="/">
+          <Link href="/" className="-mt-20">
             <Image
               src="/logo.png"
               alt="MedSift AI"
-              width={160}
-              height={40}
-              className="h-11 w-auto object-contain"
+              width={200}
+              height={130}
+              className="h-48 w-auto object-contain"
               priority
             />
           </Link>

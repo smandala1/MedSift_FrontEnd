@@ -25,17 +25,19 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
       {/* ── NAVIGATION ─────────────────────────────────────────────────── */}
-      <nav className="absolute top-0 left-0 right-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">        
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <Image
-              src="/logo.png"
-              alt="MedSift AI"
-              width={180}
-              height={45}
-              className="h-12 w-auto object-contain"
-              priority
-            />
+            <div className="h-16 w-[240px] flex items-center">
+              <Image
+                src="/logo.png"
+                alt="MedSift AI"
+                width={300}
+                height={120}
+                className="object-contain"
+                priority
+              />
+            </div>
           </Link>
           <div className="hidden md:flex items-center gap-8">
             <a href="#" className="text-sm text-[#0ea5e9] font-semibold border-b-2 border-[#0ea5e9] pb-1">Home</a>
@@ -55,7 +57,7 @@ export default function HomePage() {
       </nav>
 
       {/* ── HERO SECTION ───────────────────────────────────────────────── */}
-      <section className="relative min-h-screen pt-28 pb-16 overflow-hidden">
+      <section className="relative min-h-screen pt-36 pb-16 overflow-hidden">
         {/* Background Decorations */}
         <div className="absolute inset-0 pointer-events-none">
           {/* Top right corner stripes */}
@@ -110,10 +112,24 @@ export default function HomePage() {
                 </Button>
               </div>
 
-              {/* Stats removed - now shown in floating tiles */}
+              {/* Stats */}
+              <div className="flex gap-10">
+                <div>
+                  <div className="text-3xl font-bold text-gray-900">100%</div>
+                  <div className="text-sm text-gray-500">Local Processing</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-gray-900">&lt;30s</div>
+                  <div className="text-sm text-gray-500">Processing Time</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-gray-900">50+</div>
+                  <div className="text-sm text-gray-500">PHI Types Detected</div>
+                </div>
+              </div>
             </div>
 
-            {/* Right Column - Circular Images Cluster with Floating Tiles */}
+            {/* Right Column - Circular Images Cluster */}
             <div className={`relative transition-all duration-1000 delay-300 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
               <div className="relative w-full h-[550px] lg:h-[600px]">
                 {/* Large circle - top right */}
@@ -155,51 +171,10 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* ═══ FLOATING TILES - Teal Glass Effect ═══ */}
-                
-                {/* Tile 1: 100% Local - Top left */}
-                <div className="absolute top-12 left-[8%] backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl px-4 py-3 shadow-lg border border-[#0ea5e9]/30 z-20 animate-[fadeInUp_0.6s_ease_0.3s_both]">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-white/80 flex items-center justify-center">
-                      <Lock className="h-5 w-5 text-[#0ea5e9]" />
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-gray-900">100%</p>
-                      <p className="text-xs text-gray-600">Local Processing</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tile 2: <30s Processing - Top right, outside images */}
-                <div className="absolute top-4 -right-16 backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl px-4 py-3 shadow-lg border border-[#0ea5e9]/30 z-20 animate-[fadeInUp_0.6s_ease_0.5s_both]">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-white/80 flex items-center justify-center">
-                      <Clock className="h-5 w-5 text-[#0ea5e9]" />
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-gray-900">&lt;30s</p>
-                      <p className="text-xs text-gray-600">Processing Time</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tile 3: 50+ PHI Types - Bottom middle */}
-                <div className="absolute bottom-[25%] left-[20%] backdrop-blur-xl bg-[#0ea5e9]/20 rounded-2xl px-4 py-3 shadow-lg border border-[#0ea5e9]/30 z-20 animate-[fadeInUp_0.6s_ease_0.7s_both]">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-white/80 flex items-center justify-center">
-                      <ShieldCheck className="h-5 w-5 text-[#0ea5e9]" />
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-gray-900">50+</p>
-                      <p className="text-xs text-gray-600">PHI Types Detected</p>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Decorative elements */}
                 {/* Cyan filled circle decoration */}
-                <div className="absolute top-[15%] left-[35%] w-8 h-8 bg-[#0ea5e9] rounded-full opacity-20" />
-
+                <div className="absolute top-[15%] left-[35%] w-12 h-12 bg-[#0ea5e9] rounded-full opacity-20" />
+                
                 {/* Small dots cluster */}
                 <div className="absolute bottom-[30%] left-[25%] grid grid-cols-3 gap-1.5">
                   {[...Array(9)].map((_, i) => (
@@ -405,13 +380,13 @@ export default function HomePage() {
       <footer className="py-12 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <Image src="/logo.png" alt="MedSift AI" width={150} height={40} className="h-10 w-auto object-contain" />
+          <Image src="/logo.png" alt="MedSift AI" width={180} height={80} className="h-36 w-auto object-contain mix-blend-multiply" />
             <div className="flex items-center gap-8 text-sm text-gray-500">
               <a href="#features" className="hover:text-[#0ea5e9] transition-colors">Features</a>
               <a href="#how-it-works" className="hover:text-[#0ea5e9] transition-colors">How it Works</a>
               <a href="#about" className="hover:text-[#0ea5e9] transition-colors">About</a>
             </div>
-            <p className="text-sm text-gray-500">© 2026 MedSift AI · Hacklytics @ Georgia Tech</p>
+            <p className="text-sm text-gray-500">©️ 2026 MedSift AI · Hacklytics @ Georgia Tech</p>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-100">
             <p className="text-xs text-gray-400 text-center max-w-2xl mx-auto">
@@ -420,20 +395,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-
-      {/* Animation keyframes */}
-      <style jsx global>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   );
 }
